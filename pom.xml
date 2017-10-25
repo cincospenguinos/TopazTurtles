@@ -10,11 +10,21 @@
     <packaging>jar</packaging>
 
     <dependencies>
+        <!-- Stanford CoreNLP Tools -->
         <dependency>
             <groupId>edu.stanford.nlp</groupId>
             <artifactId>stanford-corenlp</artifactId>
             <version>3.8.0</version>
         </dependency>
+
+        <!-- Machine Learning Lib from Apache Spark -->
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-mllib_2.11</artifactId>
+            <version>2.2.0</version>
+            <scope>provided</scope>
+        </dependency>
+
     </dependencies>
 
     <build>

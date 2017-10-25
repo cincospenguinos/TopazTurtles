@@ -5,10 +5,23 @@ Here's the parts we will need:
 - [ ] Something that grabs the correct answers from the gold standard answers
 - [ ] Something that extracts features from a text and outputs it in a format 
       that a machine learning library can handle
-- [ ] A Main class that takes the proper input and kicks off everything
+- [x] A Main class that takes the proper input and kicks off everything
 - [ ] PoS tagger and other lower level NLP tools
 - [ ] A Named Entity Recognizer of some sort (trust me, this will help enormously)
-- [ ] Machine Learning library of some sort, preferably through Java
+- [x] Machine Learning library of some sort, preferably through Java
+
+## Decisions to make
+
+* How should we look at all the different files?
+* Should we store each text in a database? Something like SQLite and then just query it for things?
+* What's our pipeline?
+
+## Notes
+
+* Our machine learning library is `org.apache.spark.ml`. Documentation is [here](http://spark.apache.org/docs/latest/mllib-guide.html).
+  We picked this one because it allows us to use local vectors and the like. Trust me; it will help tremendously.
+* [Here](https://stanfordnlp.github.io/CoreNLP/)'s some docs on StanfordNLP Core. And [here](https://github.com/stanfordnlp/CoreNLP)'s
+  the GitHub page.
 
 ## Potential Resources
 
