@@ -10,6 +10,12 @@ Here's the parts we will need:
 - [ ] A Named Entity Recognizer of some sort (trust me, this will help enormously)
 - [x] Machine Learning library of some sort, preferably through Java
 
+## TODO
+
+- [ ] Start experimenting with classifiers using Apache's ML library
+- [ ] Code up all of the features that you've observed
+- [ ] Setup method of grabbing documents and pulling in their texts
+
 ## Decisions to make
 
 * How should we look at all the different files?
