@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+jar_file=topaz_turtles-1.0-SNAPSHOT.jar
+trg=target/
+
+echo 'Building package...'
+mvn package > build.log
+if [ $? -eq 0 ]; then
+    rm build.log
+    java -jar $trg/$jar_file $1
+else
+    echo 'Build failed.'
+    cat build.log
+fi
