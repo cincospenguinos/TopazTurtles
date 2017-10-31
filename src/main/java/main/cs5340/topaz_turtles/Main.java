@@ -1,5 +1,15 @@
 package main.cs5340.topaz_turtles;
 
+import com.google.gson.Gson;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.ProtocolException;
+import java.net.URL;
+
 /**
  * The main class of the application.
  */
@@ -11,6 +21,8 @@ public class Main {
             System.exit(0);
         }
 
-        System.out.println("It works!");
+        DataMuseWord[] words = DataMuse.getWordsRelatedTo("arson");
+        for (DataMuseWord w : words)
+            System.out.println(w.word);
     }
 }

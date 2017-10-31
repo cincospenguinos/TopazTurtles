@@ -32,7 +32,23 @@ public class Document {
         guesses.put(Slot.ID, filename);
     }
 
+    /**
+     * Returns value of the feature requested. It is expected that the user of this method
+     * knows what the return value is supposed to be for that specific feature, and casts it
+     * accordingly.
+     *
+     * @param feature - Feature to look at
+     * @return Object of some sort, or null if none is found.
+     */
     public Object getFeatureValue(DocumentFeature feature) {
+        switch (feature) {
+            case PROB_REL_ARSON:
+            case PROB_REL_ATTACK:
+            case PROB_REL_BOMBING:
+            case PROB_REL_KIDNAPPING:
+            case PROB_REL_ROBBERY:
+                break;
+        }
         return null; // TODO: This
     }
 
