@@ -17,12 +17,11 @@
             <version>3.8.0</version>
         </dependency>
 
-        <!-- Machine Learning Lib from Apache Spark -->
+        <!-- WEKA seems to be a bit easier to deal with -->
         <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-mllib_2.11</artifactId>
-            <version>2.2.0</version>
-            <scope>provided</scope>
+            <groupId>nz.ac.waikato.cms.weka</groupId>
+            <artifactId>weka-stable</artifactId>
+            <version>3.8.1</version>
         </dependency>
 
         <!-- Gson. For JSON to Java object encoding/decoding -->

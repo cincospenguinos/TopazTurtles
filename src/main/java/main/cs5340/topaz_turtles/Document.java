@@ -17,6 +17,12 @@ public class Document {
     private TreeMap<Slot, String> guesses; // The guesses we are putting together
     private TreeMap<Slot, String> goldStandard; // The actual answers for the document
 
+    /**
+     * All of the information that this document will hold/update as needed.
+     */
+    private int totalWords;
+    private double probRelArson, probRelAttack, probRelBombing, probRelKidnapping, probRelRobbery;
+
     public Document(String _filename, String filepath) {
         filename = _filename;
         getFullText(filepath);
@@ -30,6 +36,8 @@ public class Document {
         }
 
         guesses.put(Slot.ID, filename);
+
+        totalWords = completeText.split("\\s+").length;
     }
 
     /**
@@ -47,9 +55,22 @@ public class Document {
             case PROB_REL_BOMBING:
             case PROB_REL_KIDNAPPING:
             case PROB_REL_ROBBERY:
-                break;
+                double probRel = getProbRel(feature);
+
+                if (probRel > 0.0)
+                    return probRel;
+                else {
+                    probRelArson = discoverProbRel(DocumentFeature.PROB_REL_ARSON);
+                    probRelAttack = discoverProbRel(DocumentFeature.PROB_REL_ATTACK);
+                    probRelBombing = discoverProbRel(DocumentFeature.PROB_REL_BOMBING);
+                    probRelKidnapping = discoverProbRel(DocumentFeature.PROB_REL_KIDNAPPING);
+                    probRelRobbery = discoverProbRel(DocumentFeature.PROB_REL_ROBBERY);
+
+                    return getProbRel(feature);
+                }
+            default:
+                return null;
         }
-        return null; // TODO: This
     }
 
     /**
@@ -60,9 +81,27 @@ public class Document {
     public String toString() {
         String res = "";
         for (Map.Entry e : guesses.entrySet())
-            res += e.getKey() + " " + e.getValue();
+            res += e.getKey() + ": " + e.getValue() + "\n";
 
         return res;
+    }
+
+    /**
+     * Generates and returns an ARFF formatted String to be put into an ARFF file.
+     *
+     * @return String ARFF string
+     */
+    public String getArrfLine() {
+        StringBuilder builder = new StringBuilder();
+
+        for (int i = 0; i < DocumentFeature.values().length - 1; i++) {
+            builder.append(getFeatureValue(DocumentFeature.values()[i]));
+            builder.append(", ");
+        }
+
+        builder.append(getFeatureValue(DocumentFeature.values()[DocumentFeature.values().length - 1]));
+
+        return builder.toString();
     }
 
     /**
@@ -84,5 +123,61 @@ public class Document {
             System.err.println("Could not find file \"" + filepath + "\"");
             System.exit(1);
         }
+    }
+
+    private double getProbRel(DocumentFeature featureProbRel) {
+        switch(featureProbRel) {
+            case PROB_REL_ARSON:
+                if (probRelArson <= 0.0);
+                    discoverProbRel(featureProbRel);
+
+                return probRelArson;
+            case PROB_REL_ATTACK:
+                if (probRelAttack <= 0.0);
+                    discoverProbRel(featureProbRel);
+
+                return probRelAttack;
+            case PROB_REL_BOMBING:
+                if (probRelBombing <= 0.0);
+                    discoverProbRel(featureProbRel);
+
+                return probRelBombing;
+            case PROB_REL_KIDNAPPING:
+                if (probRelKidnapping <= 0.0);
+                    discoverProbRel(featureProbRel);
+
+                return probRelKidnapping;
+            case PROB_REL_ROBBERY:
+                if (probRelRobbery <= 0.0);
+                    discoverProbRel(featureProbRel);
+
+                return probRelRobbery;
+            default:
+                return -1.0;
+        }
+    }
+
+    /**
+     * Returns the probRel using the document feature provided.
+     *
+     * @param featureProbRel - ProbRel document feature.
+     * @return double probability
+     */
+    private double discoverProbRel(DocumentFeature featureProbRel) {
+        DataMuseWord[] words = Main.getRelatedWordsToEachIncident().get(featureProbRel.getIncidentType());
+        int relatedWords = 0;
+
+        for (DataMuseWord w : words) {
+            Scanner s = new Scanner(completeText);
+
+            while(s.hasNext()) {
+                if (s.next().equalsIgnoreCase(w.word))
+                    relatedWords++;
+            }
+
+            s.close();
+        }
+
+        return ((double) relatedWords) / ((double) totalWords);
     }
 }
