@@ -1,10 +1,12 @@
 package main.cs5340.topaz_turtles;
 
+import sun.font.CoreMetrics;
+
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.Map;
-import java.util.Scanner;
-import java.util.TreeMap;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 /**
  * Represents a single document from our dataset.
@@ -13,6 +15,7 @@ public class Document {
 
     private String filename; // Name of this document
     private String completeText; // The complete text of the document
+    private Date datePublished; // The date this document was published
 
     private TreeMap<Slot, String> guesses; // The guesses we are putting together
     private TreeMap<Slot, String> goldStandard; // The actual answers for the document
@@ -49,6 +52,8 @@ public class Document {
      * @return Object of some sort, or null if none is found.
      */
     public Object getFeatureValue(DocumentFeature feature) {
+        Calendar cal;
+
         switch (feature) {
             case PROB_REL_ARSON:
             case PROB_REL_ATTACK:
@@ -68,6 +73,22 @@ public class Document {
 
                     return getProbRel(feature);
                 }
+            case NUM_YEAR:
+                if (datePublished == null && !extractDateOccurred())
+                    return null;
+
+                cal = Calendar.getInstance();
+                cal.setTime(datePublished);
+
+                return cal.get(Calendar.MONTH);
+            case NUM_DAY_OF_YEAR:
+                if (datePublished == null && !extractDateOccurred())
+                    return null;
+
+                cal = Calendar.getInstance();
+                cal.setTime(datePublished);
+
+                return cal.get(Calendar.DAY_OF_YEAR);
             default:
                 return null;
         }
@@ -94,14 +115,61 @@ public class Document {
     public String getArrfLine() {
         StringBuilder builder = new StringBuilder();
 
-        for (int i = 0; i < DocumentFeature.values().length - 1; i++) {
-            builder.append(getFeatureValue(DocumentFeature.values()[i]));
+        for (int i = 0; i < DocumentFeature.values().length; i++) {
+            if (getFeatureValue(DocumentFeature.values()[i]) == null)
+                builder.append("?");
+            else
+                builder.append(getFeatureValue(DocumentFeature.values()[i]));
+
             builder.append(", ");
         }
 
-        builder.append(getFeatureValue(DocumentFeature.values()[DocumentFeature.values().length - 1]));
+        IncidentType type = IncidentType.fromString(goldStandard.get(Slot.INCIDENT));
+
+        if (type == null)
+            builder.append("?");
+        else
+            builder.append(type.ordinal()); // TODO: Include all of the gold standard slots here as well
 
         return builder.toString();
+    }
+
+    /**
+     * Sets the gold standard for this document from the file path provided.
+     *
+     * @param answerFilePath - answer key file
+     */
+    public void setGoldStandard(String answerFilePath) {
+        File f = new File(answerFilePath);
+
+        if (f.exists()) {
+            try {
+                Scanner s = new Scanner(f);
+
+                Slot slot = null;
+                while (s.hasNextLine()) {
+                    String line = s.nextLine();
+
+                    if (line.trim().equals(" "))
+                        continue;
+
+                    String[] lineSplit = line.split(":");
+
+                    if (lineSplit.length == 1) {
+                        goldStandard.put(slot, goldStandard.get(slot) + lineSplit[0].trim());
+                    } else {
+                        slot = Slot.fromString(lineSplit[0]);
+                        goldStandard.put(slot, goldStandard.get(slot) + lineSplit[1].trim());
+                    }
+                }
+
+                s.close();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+        } else {
+            System.err.println("Could not find file " + answerFilePath + "!");
+        }
     }
 
     /**
@@ -179,5 +247,44 @@ public class Document {
         }
 
         return ((double) relatedWords) / ((double) totalWords);
+    }
+
+    private boolean extractDateOccurred() {
+        Scanner s = new Scanner(completeText);
+        s.nextLine();
+        s.nextLine();
+
+        Scanner otherS = new Scanner(s.nextLine());
+        String dateString = "";
+
+        while (otherS.hasNext()) {
+            String str = otherS.next();
+
+            if (Character.isDigit(str.charAt(0))) {
+                dateString += str + " ";
+                dateString += otherS.next() + " ";
+                try {
+                    dateString += otherS.next();
+                } catch (NoSuchElementException e) {
+                    System.out.println("Herp");
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        otherS.close();
+        s.close();
+
+        try {
+            datePublished = new SimpleDateFormat("dd MMM yy").parse(dateString);
+            return true;
+        } catch (ParseException e) {
+//            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public String getFilename() {
+        return filename;
     }
 }

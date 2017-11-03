@@ -5,9 +5,6 @@ import com.google.gson.Gson;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
 import weka.classifiers.functions.LinearRegression;
-import weka.classifiers.functions.SimpleLinearRegression;
-import weka.classifiers.functions.VotedPerceptron;
-import weka.classifiers.trees.J48;
 import weka.core.Attribute;
 import weka.core.Instances;
 import weka.core.converters.ConverterUtils;
@@ -40,77 +37,91 @@ public class Main {
         }
 
         grabNecessaryData();
-//        generateArffFiles();
 
-//        ConverterUtils.DataSource source = null;
-//        try {
-//            Attribute attr = new Attribute("HERP");
-//
-//            ConverterUtils.DataSource trainDataSource = new ConverterUtils.DataSource(LOCAL_DATA_FILEPATH + "DEV.arff");
-//            ConverterUtils.DataSource testDataSource = new ConverterUtils.DataSource(LOCAL_DATA_FILEPATH + "TST.arff");
-//
-//            Instances trainingData = trainDataSource.getDataSet();
-////            trainingData.setClass(attr);
-//            trainingData.setClassIndex(trainingData.numAttributes() - 1);
-//
-//            Instances testData = testDataSource.getDataSet();
-//            testData.setClassIndex(testData.numAttributes() - 1);
-//
-//            if (trainingData.classIndex() == -1)
-//                trainingData.setClassIndex(trainingData.numAttributes() - 1);
-//
-//            Classifier cls = new LinearRegression();
-//            cls.buildClassifier(trainingData);
-//
-//            Evaluation eval = new Evaluation(trainingData);
-//            eval.evaluateModel(cls, testData);
-//            System.out.println(eval.toSummaryString("\nResults\n======\n", false));
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
+        ArrayList<Document> devDocs = getAllDocsStartsWith("DEV");
+        ArrayList<Document> testDocs = getAllDocsStartsWith("TST");
+
+        generateArffFile("dev", devDocs);
+        generateArffFile("test", testDocs);
+
+        ConverterUtils.DataSource source = null;
+        try {
+            ConverterUtils.DataSource trainDataSource = new ConverterUtils.DataSource(LOCAL_DATA_FILEPATH + "dev.arff");
+            ConverterUtils.DataSource testDataSource = new ConverterUtils.DataSource(LOCAL_DATA_FILEPATH + "test.arff");
+
+            Instances trainingData = trainDataSource.getDataSet();
+//            trainingData.setClass(attr);
+            trainingData.setClassIndex(trainingData.numAttributes() - 1);
+
+            Instances testData = testDataSource.getDataSet();
+            testData.setClassIndex(testData.numAttributes() - 1);
+
+            if (trainingData.classIndex() == -1)
+                trainingData.setClassIndex(trainingData.numAttributes() - 1);
+
+            Classifier cls = new LinearRegression();
+            cls.buildClassifier(trainingData);
+
+            Evaluation eval = new Evaluation(trainingData);
+            eval.evaluateModel(cls, testData);
+            System.out.println(eval.toSummaryString("\nResults\n======\n", false));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
-    private static void generateArffFiles() {
-        String[] startsWith = new String[] { "DEV", "TST" };
+    private static void generateArffFile(String name, ArrayList<Document> docs) {
+        setGoldStandards(docs);
 
-        for (String s : startsWith) {
-            ArrayList<Document> docs = getAllDocsStartsWith(s);
+        try {
+            PrintWriter writer = new PrintWriter(new File(LOCAL_DATA_FILEPATH + name + ".arff"));
 
-            try {
-                System.out.println("Generating " + s + "...");
-                PrintWriter writer = new PrintWriter(new File(s + ".arff"));
+            writer.println("% " + name + ".arff");
+            writer.println("% Contains all the various feature vectors for each document.");
+            writer.println("% Think of this as a collection of feature vectors.\n");
+            writer.println("@RELATION DEV_DOCUMENT\n");
 
-                writer.println("% " + s + ".arff");
-                writer.println("% Contains all the various feature vectors for each document.");
-                writer.println("% Think of this as a collection of feature vectors.\n");
-                writer.println("@RELATION DEV_DOCUMENT\n");
+            for (DocumentFeature f : DocumentFeature.values())
+                writer.println("@ATTRIBUTE " + f + " NUMERIC"); // TODO: this shouldn't be numeric forever
 
-                for (DocumentFeature f : DocumentFeature.values())
-                    writer.println("@ATTRIBUTE " + f + " NUMERIC"); // TODO: this shouldn't be numeric forever
+            writer.print("@ATTRIBUTE class NUMERIC");
 
-                writer.println("\n@DATA");
+            writer.println("\n@DATA");
 
-                for (Document d : docs)
-                    writer.println(d.getArrfLine());
+            for (Document d : docs)
+                writer.println(d.getArrfLine());
 
-                writer.flush();
-                writer.close();
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
+            writer.flush();
+            writer.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void setGoldStandards(ArrayList<Document> docs) {
+        File[] answerFiles = new File(DATASET_FILEPATH + "answers/").listFiles();
+
+        for (int i = 0; i < answerFiles.length; i++) {
+            File f = answerFiles[i];
+
+            for (Document d : docs) {
+                if (f.getName().contains(d.getFilename())) {
+                    d.setGoldStandard(f.getPath());
+                }
             }
         }
     }
 
     private static ArrayList<Document> getAllDocsStartsWith(String str) {
-        ArrayList<Document> devDocs = new ArrayList<Document>();
+        ArrayList<Document> docs = new ArrayList<Document>();
 
         for (File f : new File(TEXT_FILEPATH).listFiles()) {
             if (f.getName().startsWith(str)) {
-                devDocs.add(getDocument(f.getPath()));
+                docs.add(getDocument(f.getPath()));
             }
         }
 
-        return devDocs;
+        return docs;
     }
 
     /**
