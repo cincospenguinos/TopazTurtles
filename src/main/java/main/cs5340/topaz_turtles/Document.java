@@ -43,6 +43,18 @@ public class Document {
         totalWords = completeText.split("\\s+").length;
     }
 
+    public boolean containsWordInText(String word) {
+        Scanner s = new Scanner(completeText);
+
+        while (s.hasNextLine())
+            if (s.nextLine().contains(word.toUpperCase()))
+                return true;
+
+            s.close();
+
+        return false;
+    }
+
     /**
      * Returns value of the feature requested. It is expected that the user of this method
      * knows what the return value is supposed to be for that specific feature, and casts it
@@ -105,33 +117,6 @@ public class Document {
             res += e.getKey() + ": " + e.getValue() + "\n";
 
         return res;
-    }
-
-    /**
-     * Generates and returns an ARFF formatted String to be put into an ARFF file.
-     *
-     * @return String ARFF string
-     */
-    public String getArrfLine() {
-        StringBuilder builder = new StringBuilder();
-
-        for (int i = 0; i < DocumentFeature.values().length; i++) {
-            if (getFeatureValue(DocumentFeature.values()[i]) == null)
-                builder.append("?");
-            else
-                builder.append(getFeatureValue(DocumentFeature.values()[i]));
-
-            builder.append(", ");
-        }
-
-        IncidentType type = IncidentType.fromString(goldStandard.get(Slot.INCIDENT));
-
-        if (type == null)
-            builder.append("?");
-        else
-            builder.append(type.ordinal()); // TODO: Include all of the gold standard slots here as well
-
-        return builder.toString();
     }
 
     /**
@@ -286,5 +271,9 @@ public class Document {
 
     public String getFilename() {
         return filename;
+    }
+
+    public String getGoldStandardValue(Slot slot) {
+        return goldStandard.get(slot);
     }
 }

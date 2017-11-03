@@ -2,21 +2,10 @@ package main.cs5340.topaz_turtles;
 
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.Gson;
-import weka.classifiers.Classifier;
-import weka.classifiers.Evaluation;
-import weka.classifiers.functions.LinearRegression;
-import weka.core.Attribute;
-import weka.core.Instances;
-import weka.core.converters.ConverterUtils;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Scanner;
-import java.util.TreeMap;
+import java.util.*;
 
 /**
  * The main class of the application.
@@ -27,6 +16,8 @@ public class Main {
     public static final String RELATED_WORDS_FILEPATH = LOCAL_DATA_FILEPATH + "related_words.json";
     public static final String DATASET_FILEPATH = "dataset/";
     public static final String TEXT_FILEPATH = DATASET_FILEPATH + "texts/";
+    public static final String DEV_VECTOR_FILENAME = "dev.vector";
+    public static final String TEST_VECTOR_FILENAME = "test.vector";
 
     private static TreeMap<IncidentType, DataMuseWord[]> relatedWordsToEachIncident;
 
@@ -36,62 +27,94 @@ public class Main {
             System.exit(0);
         }
 
-        grabNecessaryData();
+        setup();
 
-        ArrayList<Document> devDocs = getAllDocsStartsWith("DEV");
-        ArrayList<Document> testDocs = getAllDocsStartsWith("TST");
+        for (String file : args) {
+            Document d = getDocument(file);
 
-        generateArffFile("dev", devDocs);
-        generateArffFile("test", testDocs);
+            if (d == null) {
+                System.err.println(file + " does not exist!");
+                continue;
+            }
 
-        ConverterUtils.DataSource source = null;
+            // Make guesses for each of the different slots
+            fillSlots(d);
+
+            // Print out what they want us to
+            System.out.println(d);
+        }
+    }
+
+    /**
+     * Fills the various slots on the document.
+     *
+     * @param d - Document to make guesses on
+     */
+    private static void fillSlots(Document d) {
+        ArrayList<Document> aSingleDoc = new ArrayList<Document>();
+        aSingleDoc.add(d);
+
+        // Incident type
+        generateVectorFile(aSingleDoc, d.getFilename() + ".vector");
         try {
-            ConverterUtils.DataSource trainDataSource = new ConverterUtils.DataSource(LOCAL_DATA_FILEPATH + "dev.arff");
-            ConverterUtils.DataSource testDataSource = new ConverterUtils.DataSource(LOCAL_DATA_FILEPATH + "test.arff");
+            ProcessBuilder b = new ProcessBuilder("./predict " + d.getFilename() + ".vector incident_type.models prediction");
+            b.directory(new File("."));
+            Process p = b.start();
+            p.wait(5000);
 
-            Instances trainingData = trainDataSource.getDataSet();
-//            trainingData.setClass(attr);
-            trainingData.setClassIndex(trainingData.numAttributes() - 1);
+            Scanner s = new Scanner(new File("prediction"));
 
-            Instances testData = testDataSource.getDataSet();
-            testData.setClassIndex(testData.numAttributes() - 1);
+            while (s.hasNext())
+                System.out.println(s.next());
 
-            if (trainingData.classIndex() == -1)
-                trainingData.setClassIndex(trainingData.numAttributes() - 1);
-
-            Classifier cls = new LinearRegression();
-            cls.buildClassifier(trainingData);
-
-            Evaluation eval = new Evaluation(trainingData);
-            eval.evaluateModel(cls, testData);
-            System.out.println(eval.toSummaryString("\nResults\n======\n", false));
-        } catch (Exception e) {
+            s.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
 
-    private static void generateArffFile(String name, ArrayList<Document> docs) {
-        setGoldStandards(docs);
+    private static void generateVectorFile(ArrayList<Document> docs, String filename) {
+        // TODO: Add another parameter that changes the output file according to what slot is given
+        StringBuilder vectorFileBuilder = new StringBuilder();
+        LibLinearFeatureManager manager = LibLinearFeatureManager.getInstance();
+
+        for (Document d : docs) {
+            TreeMap<Integer, Boolean> libLinearFeatureVector = new TreeMap<Integer, Boolean>();
+
+            for (DataMuseWord[] array : relatedWordsToEachIncident.values()) {
+                for (DataMuseWord w : array) {
+                    boolean isTrue = d.containsWordInText(w.word);
+                    int id = manager.addFeature(LibLinearFeatureManager.LibLinearFeature.CONTAINS_WORD, w.word);
+                    libLinearFeatureVector.put(id, isTrue);
+                }
+            }
+            IncidentType incident = IncidentType.fromString(d.getGoldStandardValue(Slot.INCIDENT));
+
+            int incidentLabelId;
+
+            if (incident == null)
+                incidentLabelId = -1;
+            else
+                incidentLabelId = incident.ordinal();
+
+            vectorFileBuilder.append(incidentLabelId);
+            vectorFileBuilder.append(" ");
+
+            for (Map.Entry<Integer, Boolean> e : libLinearFeatureVector.entrySet()) {
+                if (e.getValue()) {
+                    vectorFileBuilder.append(e.getKey());
+                    vectorFileBuilder.append(":1 ");
+                }
+            }
+
+            vectorFileBuilder.append("\n");
+        }
 
         try {
-            PrintWriter writer = new PrintWriter(new File(LOCAL_DATA_FILEPATH + name + ".arff"));
-
-            writer.println("% " + name + ".arff");
-            writer.println("% Contains all the various feature vectors for each document.");
-            writer.println("% Think of this as a collection of feature vectors.\n");
-            writer.println("@RELATION DEV_DOCUMENT\n");
-
-            for (DocumentFeature f : DocumentFeature.values())
-                writer.println("@ATTRIBUTE " + f + " NUMERIC"); // TODO: this shouldn't be numeric forever
-
-            writer.print("@ATTRIBUTE class NUMERIC");
-
-            writer.println("\n@DATA");
-
-            for (Document d : docs)
-                writer.println(d.getArrfLine());
-
-            writer.flush();
+            PrintWriter writer = new PrintWriter(new File(filename));
+            writer.print(vectorFileBuilder.toString().trim());
             writer.close();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -133,15 +156,12 @@ public class Main {
         File f = new File(filePath);
 
         if (!f.exists()) {
-            System.err.println(filePath + " does not exist!");
-            System.exit(1);
+            return null;
         } else {
             String[] split = filePath.split("\\/");
             String fileName = split[split.length - 1];
             return new Document(fileName, filePath);
         }
-
-        return null;
     }
 
     private static void setupFilepath() {
@@ -173,7 +193,6 @@ public class Main {
         if (!relatedWordsFile.exists()) {
             relatedWordsToEachIncident = new TreeMap<IncidentType, DataMuseWord[]>();
 
-            System.out.println("Grabbing related words for each IncidentType...");
             for (IncidentType t : IncidentType.values()) {
                 DataMuseWord[] words = DataMuse.getWordsRelatedTo(t.toString().toLowerCase());
                 relatedWordsToEachIncident.put(t, words);
@@ -198,7 +217,6 @@ public class Main {
         } else {
             Gson gson = new Gson();
 
-            System.out.println("Grabbing related words...");
             try {
                 StringBuilder builder = new StringBuilder();
                 Scanner s = new Scanner(relatedWordsFile);
@@ -212,6 +230,45 @@ public class Main {
                 e.printStackTrace();
             }
         }
+    }
+
+    /**
+     * Function that runs first thing. Use this to generate any files you will need, grab any data
+     * you may need to have put together, etc.
+     */
+    private static void setup() {
+        grabNecessaryData(); // Picks up related words and other data stored on the disk
+
+        // Grab all the docs and generate vector files from them
+        ArrayList<Document> devDocs = getAllDocsStartsWith("DEV");
+//        ArrayList<Document> testDocs = getAllDocsStartsWith("TST");
+
+        setGoldStandards(devDocs);
+//        setGoldStandards(testDocs);
+
+        generateVectorFile(devDocs, DEV_VECTOR_FILENAME);
+//        generateVectorFile(testDocs, TEST_VECTOR_FILENAME);
+
+        // Generate a models file
+//        try {
+//            ProcessBuilder b = new ProcessBuilder("make", "cp train ..", "cp predict ..");
+//            b.directory(new File("."));
+//            Process p = b.start();
+//            p.wait(5000);
+//
+//            if (p.exitValue() == 1) {
+//                System.err.println("Could not work with LibLinear!");
+//                System.exit(1);
+//            }
+//
+//            // TODO: Generate vector files for all Slots that we're using machine learning with
+//            new ProcessBuilder("train " + DEV_VECTOR_FILENAME + " incident_type.models").start();
+//            p.wait();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
     }
 
     public static TreeMap<IncidentType, DataMuseWord[]> getRelatedWordsToEachIncident() {

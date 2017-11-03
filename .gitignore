@@ -1,3 +1,6 @@
 .idea/
 target/
 .topaz_turtles_data/
+train
+predict
+*.vector

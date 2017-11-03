@@ -2,6 +2,15 @@
 jar_file=topaz_turtles-1.0-SNAPSHOT.jar
 trg=target/
 
+echo 'Building and grabbing liblinear...'
+cd liblinear
+make
+cp train ..
+cp predict ..
+cd ..
+
+# TODO: Vector files and stuff
+
 echo 'Building package...'
 mvn package > build.log
 if [ $? -eq 0 ]; then
