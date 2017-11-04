@@ -276,4 +276,14 @@ public class Document {
     public String getGoldStandardValue(Slot slot) {
         return goldStandard.get(slot);
     }
+
+    public void setSlot(Slot slot, Object slotValue) {
+        switch(slot) {
+            case INCIDENT:
+                if (!((slotValue instanceof IncidentType) || (slotValue instanceof String)))
+                    throw new RuntimeException("INCIDENT slot requires an IncidentType or String!");
+
+                guesses.put(slot, slotValue.toString());
+        }
+    }
 }

@@ -57,17 +57,20 @@ public class Main {
         // Incident type
         generateVectorFile(aSingleDoc, d.getFilename() + ".vector");
         try {
-            ProcessBuilder b = new ProcessBuilder("./predict " + d.getFilename() + ".vector incident_type.models prediction");
-            b.directory(new File("."));
-            Process p = b.start();
-            p.wait(5000);
+            Process p = Runtime.getRuntime().exec("./predict " + d.getFilename() +
+                    ".vector incident_type.models " + d.getFilename() + ".prediction");
+            int exitCode = p.waitFor();
 
-            Scanner s = new Scanner(new File("prediction"));
+            if (exitCode != 0) {
+                System.err.println("exit code for " + d.getFilename() + " was " + exitCode);
+                return;
+            }
 
-            while (s.hasNext())
-                System.out.println(s.next());
-
+            Scanner s = new Scanner(new File(d.getFilename() + ".prediction"));
+            int incidentTypeOrdinal = Integer.parseInt(s.next());
             s.close();
+
+            d.setSlot(Slot.INCIDENT, IncidentType.fromOrdinal(incidentTypeOrdinal));
         } catch (IOException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
@@ -248,27 +251,6 @@ public class Main {
 
         generateVectorFile(devDocs, DEV_VECTOR_FILENAME);
 //        generateVectorFile(testDocs, TEST_VECTOR_FILENAME);
-
-        // Generate a models file
-//        try {
-//            ProcessBuilder b = new ProcessBuilder("make", "cp train ..", "cp predict ..");
-//            b.directory(new File("."));
-//            Process p = b.start();
-//            p.wait(5000);
-//
-//            if (p.exitValue() == 1) {
-//                System.err.println("Could not work with LibLinear!");
-//                System.exit(1);
-//            }
-//
-//            // TODO: Generate vector files for all Slots that we're using machine learning with
-//            new ProcessBuilder("train " + DEV_VECTOR_FILENAME + " incident_type.models").start();
-//            p.wait();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
     }
 
     public static TreeMap<IncidentType, DataMuseWord[]> getRelatedWordsToEachIncident() {
