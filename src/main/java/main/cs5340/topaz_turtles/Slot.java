@@ -30,4 +30,14 @@ public enum Slot {
                 return super.toString();
         }
     }
+
+    /**
+     * All the slots that we're using machine learning to solve.
+     *
+     * @return Slot[] of all slots that we're using machine learning to solve.
+     */
+    public static Slot[] machineLearningSlots() {
+        Slot[] slots = new Slot[] { INCIDENT, PERP_INDIV, PERP_ORG };
+        return slots;
+    }
 }

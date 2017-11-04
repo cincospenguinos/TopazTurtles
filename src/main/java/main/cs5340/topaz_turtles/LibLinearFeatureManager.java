@@ -17,8 +17,6 @@ public class LibLinearFeatureManager {
         return instance;
     }
 
-    public enum LibLinearFeature { CONTAINS_WORD }
-
     private int nextId = 1;
     private TreeMap<LibLinearFeature, TreeMap<Object, Integer>> features;
 

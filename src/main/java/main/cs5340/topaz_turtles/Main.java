@@ -9,6 +9,9 @@ import java.util.*;
 
 /**
  * The main class of the application.
+ *
+ * TODO: Extract all locations and keep them in a TreeSet
+ * TODO: Figure out named entity recognition with the Stanford library and extract those and include them as a feature
  */
 public class Main {
 
@@ -16,10 +19,9 @@ public class Main {
     public static final String RELATED_WORDS_FILEPATH = LOCAL_DATA_FILEPATH + "related_words.json";
     public static final String DATASET_FILEPATH = "dataset/";
     public static final String TEXT_FILEPATH = DATASET_FILEPATH + "texts/";
-    public static final String DEV_VECTOR_FILENAME = "dev.vector";
-    public static final String TEST_VECTOR_FILENAME = "test.vector";
 
     private static TreeMap<IncidentType, DataMuseWord[]> relatedWordsToEachIncident;
+    private static TreeSet<String> locations;
 
     public static void main(String[] args) {
         if (args.length == 0) {
@@ -51,68 +53,117 @@ public class Main {
      * @param d - Document to make guesses on
      */
     private static void fillSlots(Document d) {
-        ArrayList<Document> aSingleDoc = new ArrayList<Document>();
-        aSingleDoc.add(d);
+        for (Slot slot : Slot.values()) {
+            switch(slot) {
+                case INCIDENT:
+                case PERP_INDIV:
+                case PERP_ORG:
+                    ArrayList<Document> aSingleDoc = new ArrayList<Document>();
+                    aSingleDoc.add(d);
 
-        // Incident type
-        generateVectorFile(aSingleDoc, d.getFilename() + ".vector");
-        try {
-            Process p = Runtime.getRuntime().exec("./predict " + d.getFilename() +
-                    ".vector incident_type.models " + d.getFilename() + ".prediction");
-            int exitCode = p.waitFor();
+                    String vectorFileName = LOCAL_DATA_FILEPATH + d.getFilename() + ".vector";
+                    String predictionFileName = LOCAL_DATA_FILEPATH + d.getFilename() + ".prediction";
+                    String modelFileName = LOCAL_DATA_FILEPATH + "DEV-" + slot.toString().replace(" ", "_") + ".models";
 
-            if (exitCode != 0) {
-                System.err.println("exit code for " + d.getFilename() + " was " + exitCode);
-                return;
+                    generateVectorFile(aSingleDoc, vectorFileName, Slot.INCIDENT);
+                    try {
+                        String exec = "./predict " + vectorFileName + " " + modelFileName + " " + predictionFileName;
+                        Process p = Runtime.getRuntime().exec(exec);
+                        int exitCode = p.waitFor();
+
+                        if (exitCode != 0) {
+                            System.err.println("exit code for " + d.getFilename() + " was " + exitCode);
+                            return;
+                        }
+
+                        Scanner s = new Scanner(new File(predictionFileName));
+                        int incidentTypeOrdinal = Integer.parseInt(s.next());
+                        s.close();
+
+                        d.setSlot(Slot.INCIDENT, IncidentType.fromOrdinal(incidentTypeOrdinal));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+
+                    break;
+
+                    // These are where Quinn will do his work
+                case TARGET:
+                    break;
+                case VICTIM:
+                    break;
+                case WEAPON:
+                    break;
             }
-
-            Scanner s = new Scanner(new File(d.getFilename() + ".prediction"));
-            int incidentTypeOrdinal = Integer.parseInt(s.next());
-            s.close();
-
-            d.setSlot(Slot.INCIDENT, IncidentType.fromOrdinal(incidentTypeOrdinal));
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
         }
     }
 
-    private static void generateVectorFile(ArrayList<Document> docs, String filename) {
-        // TODO: Add another parameter that changes the output file according to what slot is given
+    /**
+     * Generates a single vector file using all of the docs provided, with the given filename,
+     * for the slot provided.
+     *
+     * @param docs - Documents to generate vector file from
+     * @param filename - name of vector file
+     * @param slot - What slot to fill
+     */
+    private static void generateVectorFile(ArrayList<Document> docs, String filename, Slot slot) {
         StringBuilder vectorFileBuilder = new StringBuilder();
         LibLinearFeatureManager manager = LibLinearFeatureManager.getInstance();
 
+        // For each document...
         for (Document d : docs) {
-            TreeMap<Integer, Boolean> libLinearFeatureVector = new TreeMap<Integer, Boolean>();
+            TreeMap<Integer, Boolean> libLinearFeatureVector = new TreeMap<Integer, Boolean>(); // Keep a map of key-bool pairs
 
-            for (DataMuseWord[] array : relatedWordsToEachIncident.values()) {
-                for (DataMuseWord w : array) {
-                    boolean isTrue = d.containsWordInText(w.word);
-                    int id = manager.addFeature(LibLinearFeatureManager.LibLinearFeature.CONTAINS_WORD, w.word);
-                    libLinearFeatureVector.put(id, isTrue);
-                }
-            }
-            IncidentType incident = IncidentType.fromString(d.getGoldStandardValue(Slot.INCIDENT));
-
-            int incidentLabelId;
-
-            if (incident == null)
-                incidentLabelId = -1;
-            else
-                incidentLabelId = incident.ordinal();
-
-            vectorFileBuilder.append(incidentLabelId);
-            vectorFileBuilder.append(" ");
-
-            for (Map.Entry<Integer, Boolean> e : libLinearFeatureVector.entrySet()) {
-                if (e.getValue()) {
-                    vectorFileBuilder.append(e.getKey());
-                    vectorFileBuilder.append(":1 ");
+            // Grab the proper IDs and their values for each LibLinearFeature
+            for (LibLinearFeature libLinearFeature : LibLinearFeature.values()) {
+                switch(libLinearFeature) {
+                    case CONTAINS_WORD:
+                        for (DataMuseWord[] array : relatedWordsToEachIncident.values()) {
+                            for (DataMuseWord w : array) {
+                                boolean isTrue = d.containsWordInText(w.word);
+                                int id = manager.addFeature(LibLinearFeature.CONTAINS_WORD, w.word);
+                                libLinearFeatureVector.put(id, isTrue);
+                            }
+                        }
+                        break;
+                    case FROM_LOCATION:
+                        break;
                 }
             }
 
-            vectorFileBuilder.append("\n");
+            // Now append the label we're trying to discover to the string we're building
+            switch(slot) {
+                case INCIDENT:
+                    IncidentType incident = IncidentType.fromString(d.getGoldStandardValue(Slot.INCIDENT));
+
+                    int incidentLabelId;
+
+                    if (incident == null)
+                        incidentLabelId = -1;
+                    else
+                        incidentLabelId = incident.ordinal();
+
+                    vectorFileBuilder.append(incidentLabelId);
+                    vectorFileBuilder.append(" ");
+
+                    for (Map.Entry<Integer, Boolean> e : libLinearFeatureVector.entrySet()) {
+                        if (e.getValue()) {
+                            vectorFileBuilder.append(e.getKey());
+                            vectorFileBuilder.append(":1 ");
+                        }
+                    }
+
+                    vectorFileBuilder.append("\n");
+                    break;
+                case PERP_INDIV:
+                    // TODO: This
+                    break;
+                case PERP_ORG:
+                    // TODO: This
+                    break;
+            }
         }
 
         try {
@@ -167,10 +218,14 @@ public class Main {
         }
     }
 
-    private static void setupFilepath() {
+    /**
+     * Function that runs first thing. Use this to generate any files you will need, grab any data
+     * you may need to have put together, etc.
+     */
+    private static void setup() {
+        // Setup local data directory
         File path = new File(LOCAL_DATA_FILEPATH);
 
-        // Ensure that the local data directory exists
         if (!path.exists()) {
             System.out.println("Creating local data directory...");
             boolean flag = false;
@@ -186,10 +241,6 @@ public class Main {
                 System.exit(0);
             }
         }
-    }
-
-    private static void grabNecessaryData() {
-        setupFilepath();
 
         // Ensure that the related words file path exists
         File relatedWordsFile = new File(RELATED_WORDS_FILEPATH);
@@ -231,26 +282,33 @@ public class Main {
                 relatedWordsToEachIncident = gson.fromJson(builder.toString().trim(), treeType);
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
+                System.exit(1);
             }
         }
-    }
-
-    /**
-     * Function that runs first thing. Use this to generate any files you will need, grab any data
-     * you may need to have put together, etc.
-     */
-    private static void setup() {
-        grabNecessaryData(); // Picks up related words and other data stored on the disk
 
         // Grab all the docs and generate vector files from them
         ArrayList<Document> devDocs = getAllDocsStartsWith("DEV");
-//        ArrayList<Document> testDocs = getAllDocsStartsWith("TST");
+        ArrayList<Document> testDocs = getAllDocsStartsWith("TST");
 
         setGoldStandards(devDocs);
-//        setGoldStandards(testDocs);
+        setGoldStandards(testDocs);
 
-        generateVectorFile(devDocs, DEV_VECTOR_FILENAME);
-//        generateVectorFile(testDocs, TEST_VECTOR_FILENAME);
+        for (Slot s : Slot.machineLearningSlots()) {
+            generateVectorFile(devDocs, LOCAL_DATA_FILEPATH + "DEV-" + s.toString().replace(" ", "_") + ".vector", s);
+            generateVectorFile(testDocs, LOCAL_DATA_FILEPATH + "TEST-" + s.toString().replace(" ", "_") + ".vector", s);
+        }
+
+        // Generate model files from each of the dev vector files
+        for (File f : new File(LOCAL_DATA_FILEPATH).listFiles()) {
+            if (f.getName().contains(".vector") && f.getName().startsWith("DEV")) {
+                try {
+                    Runtime.getRuntime().exec("./train " + f.getCanonicalPath() + " "
+                            + LOCAL_DATA_FILEPATH + f.getName().replace(".vector", ".models"));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
     public static TreeMap<IncidentType, DataMuseWord[]> getRelatedWordsToEachIncident() {
