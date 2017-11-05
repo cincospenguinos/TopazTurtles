@@ -2,6 +2,7 @@ package main.cs5340.topaz_turtles;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.TreeMap;
@@ -49,6 +50,8 @@ public class Document {
         return res;
     }
 
+    public String getCompleteText(){ return this.completeText; }
+
     /**
      * Helper method. Grabs the full text from the file found in the path provided. Terminates
      * if no such file exists.
@@ -69,4 +72,10 @@ public class Document {
             System.exit(1);
         }
     }
+
+    //when parsing the text file use regex to find the actual documents.
+    // DEV-MUC3-[\d]*
+    // TST1-MUC3-[\d]*
+    // TST2-MUC3-[\d]*
+
 }
