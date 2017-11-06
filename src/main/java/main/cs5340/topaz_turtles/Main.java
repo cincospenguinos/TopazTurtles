@@ -130,6 +130,10 @@ public class Main {
                         break;
                     case FROM_LOCATION:
                         break;
+                    case YEAR:
+                        break;
+                    case DAY_OF_YEAR:
+                        break;
                 }
             }
 

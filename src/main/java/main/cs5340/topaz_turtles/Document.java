@@ -1,7 +1,5 @@
 package main.cs5340.topaz_turtles;
 
-import sun.font.CoreMetrics;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.text.ParseException;
@@ -15,7 +13,9 @@ public class Document {
 
     private String filename; // Name of this document
     private String completeText; // The complete text of the document
-    private Date datePublished; // The date this document was published
+    private int yearPublished;
+    private int monthPublished;
+    private int dayOfYearPublished;
 
     private TreeMap<Slot, String> guesses; // The guesses we are putting together
     private TreeMap<Slot, String> goldStandard; // The actual answers for the document
@@ -67,40 +67,10 @@ public class Document {
         Calendar cal;
 
         switch (feature) {
-            case PROB_REL_ARSON:
-            case PROB_REL_ATTACK:
-            case PROB_REL_BOMBING:
-            case PROB_REL_KIDNAPPING:
-            case PROB_REL_ROBBERY:
-                double probRel = getProbRel(feature);
-
-                if (probRel > 0.0)
-                    return probRel;
-                else {
-                    probRelArson = discoverProbRel(DocumentFeature.PROB_REL_ARSON);
-                    probRelAttack = discoverProbRel(DocumentFeature.PROB_REL_ATTACK);
-                    probRelBombing = discoverProbRel(DocumentFeature.PROB_REL_BOMBING);
-                    probRelKidnapping = discoverProbRel(DocumentFeature.PROB_REL_KIDNAPPING);
-                    probRelRobbery = discoverProbRel(DocumentFeature.PROB_REL_ROBBERY);
-
-                    return getProbRel(feature);
-                }
             case NUM_YEAR:
-                if (datePublished == null && !extractDateOccurred())
-                    return null;
-
-                cal = Calendar.getInstance();
-                cal.setTime(datePublished);
-
-                return cal.get(Calendar.MONTH);
+                // TODO: This
             case NUM_DAY_OF_YEAR:
-                if (datePublished == null && !extractDateOccurred())
-                    return null;
-
-                cal = Calendar.getInstance();
-                cal.setTime(datePublished);
-
-                return cal.get(Calendar.DAY_OF_YEAR);
+                // TODO: This
             default:
                 return null;
         }
@@ -178,63 +148,7 @@ public class Document {
         }
     }
 
-    private double getProbRel(DocumentFeature featureProbRel) {
-        switch(featureProbRel) {
-            case PROB_REL_ARSON:
-                if (probRelArson <= 0.0);
-                    discoverProbRel(featureProbRel);
-
-                return probRelArson;
-            case PROB_REL_ATTACK:
-                if (probRelAttack <= 0.0);
-                    discoverProbRel(featureProbRel);
-
-                return probRelAttack;
-            case PROB_REL_BOMBING:
-                if (probRelBombing <= 0.0);
-                    discoverProbRel(featureProbRel);
-
-                return probRelBombing;
-            case PROB_REL_KIDNAPPING:
-                if (probRelKidnapping <= 0.0);
-                    discoverProbRel(featureProbRel);
-
-                return probRelKidnapping;
-            case PROB_REL_ROBBERY:
-                if (probRelRobbery <= 0.0);
-                    discoverProbRel(featureProbRel);
-
-                return probRelRobbery;
-            default:
-                return -1.0;
-        }
-    }
-
-    /**
-     * Returns the probRel using the document feature provided.
-     *
-     * @param featureProbRel - ProbRel document feature.
-     * @return double probability
-     */
-    private double discoverProbRel(DocumentFeature featureProbRel) {
-        DataMuseWord[] words = Main.getRelatedWordsToEachIncident().get(featureProbRel.getIncidentType());
-        int relatedWords = 0;
-
-        for (DataMuseWord w : words) {
-            Scanner s = new Scanner(completeText);
-
-            while(s.hasNext()) {
-                if (s.next().equalsIgnoreCase(w.word))
-                    relatedWords++;
-            }
-
-            s.close();
-        }
-
-        return ((double) relatedWords) / ((double) totalWords);
-    }
-
-    private boolean extractDateOccurred() {
+    private void extractDateInformation() {
         Scanner s = new Scanner(completeText);
         s.nextLine();
         s.nextLine();
@@ -259,14 +173,6 @@ public class Document {
 
         otherS.close();
         s.close();
-
-        try {
-            datePublished = new SimpleDateFormat("dd MMM yy").parse(dateString);
-            return true;
-        } catch (ParseException e) {
-//            e.printStackTrace();
-            return false;
-        }
     }
 
     public String getFilename() {
