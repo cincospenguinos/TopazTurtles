@@ -22,12 +22,14 @@ public class Main {
 
     private static TreeMap<IncidentType, DataMuseWord[]> relatedWordsToEachIncident;
     private static TreeSet<String> locations;
+    private static TreeSet<String> individuals;
 
     public static void main(String[] args) {
         if (args.length == 0) {
             System.out.println("Usage: java -jar [name] [file1] [file2] ...");
             System.exit(0);
         }
+        CoreNLP.getPipeline();
 
         setup();
 

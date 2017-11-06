@@ -1,5 +1,8 @@
 package main.cs5340.topaz_turtles;
 
+import edu.stanford.nlp.pipeline.Annotation;
+import edu.stanford.nlp.pipeline.StanfordCoreNLP;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.text.ParseException;
@@ -15,17 +18,14 @@ public class Document {
 
     private String filename; // Name of this document
     private String completeText; // The complete text of the document
+
     private int yearPublished;
     private int monthPublished;
     private int dayOfYearPublished;
+    private ArrayList<String> potentialLocations;
 
     private TreeMap<Slot, String> guesses; // The guesses we are putting together
     private TreeMap<Slot, String> goldStandard; // The actual answers for the document
-
-    /**
-     * All of the information that this document will hold/update as needed.
-     */
-    private double probRelArson, probRelAttack, probRelBombing, probRelKidnapping, probRelRobbery;
 
     public Document(String _filename, String filepath) {
         filename = _filename;
@@ -41,8 +41,13 @@ public class Document {
 
         guesses.put(Slot.ID, filename);
 
+        potentialLocations = new ArrayList<String>();
+
         extractDateInformation();
+        extractLocations();
     }
+
+
 
     public boolean containsWordInText(String word) {
         Scanner s = new Scanner(completeText);
@@ -171,6 +176,12 @@ public class Document {
         yearPublished = -1;
         monthPublished = -1;
         dayOfYearPublished = -1;
+    }
+
+    private void extractLocations() {
+        Annotation annotation = new Annotation(completeText);
+        CoreNLP.getPipeline().annotate(annotation);
+        System.out.println(annotation);
     }
 
     public String getFilename() {

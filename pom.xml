@@ -10,11 +10,24 @@
     <packaging>jar</packaging>
 
     <dependencies>
+        <!-- Required by Stanford CoreNLP -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>1.7.25</version>
+        </dependency>
+
         <!-- Stanford CoreNLP Tools -->
         <dependency>
             <groupId>edu.stanford.nlp</groupId>
             <artifactId>stanford-corenlp</artifactId>
             <version>3.8.0</version>
+        </dependency>
+        <dependency>
+            <groupId>edu.stanford.nlp</groupId>
+            <artifactId>stanford-corenlp</artifactId>
+            <version>3.8.0</version>
+            <classifier>models</classifier>
         </dependency>
 
         <!-- WEKA seems to be a bit easier to deal with -->
