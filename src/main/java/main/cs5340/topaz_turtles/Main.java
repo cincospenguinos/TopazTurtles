@@ -65,6 +65,7 @@ public class Main {
                     String predictionFileName = LOCAL_DATA_FILEPATH + d.getFilename() + ".prediction";
                     String modelFileName = LOCAL_DATA_FILEPATH + "DEV-" + slot.toString().replace(" ", "_") + ".models";
 
+                    // TODO: Fix this so that slot is used instead of INCIDENT
                     generateVectorFile(aSingleDoc, vectorFileName, Slot.INCIDENT);
                     try {
                         String exec = "./predict " + vectorFileName + " " + modelFileName + " " + predictionFileName;
@@ -117,13 +118,14 @@ public class Main {
             TreeMap<Integer, Boolean> libLinearFeatureVector = new TreeMap<Integer, Boolean>(); // Keep a map of key-bool pairs
 
             // Grab the proper IDs and their values for each LibLinearFeature
+            int id = -1;
             for (LibLinearFeature libLinearFeature : LibLinearFeature.values()) {
                 switch(libLinearFeature) {
                     case CONTAINS_WORD:
                         for (DataMuseWord[] array : relatedWordsToEachIncident.values()) {
                             for (DataMuseWord w : array) {
                                 boolean isTrue = d.containsWordInText(w.word);
-                                int id = manager.addFeature(LibLinearFeature.CONTAINS_WORD, w.word);
+                                id = manager.addFeature(libLinearFeature, w.word);
                                 libLinearFeatureVector.put(id, isTrue);
                             }
                         }
@@ -131,8 +133,22 @@ public class Main {
                     case FROM_LOCATION:
                         break;
                     case YEAR:
+                        if (d.getYearPublished() != -1) {
+                            id = manager.addFeature(libLinearFeature, d.getYearPublished());
+                            libLinearFeatureVector.put(id, true);
+                        }
+                        break;
+                    case MONTH:
+                        if (d.getMonthPublished() != -1) {
+                            id = manager.addFeature(libLinearFeature, d.getYearPublished());
+                            libLinearFeatureVector.put(id, true);
+                        }
                         break;
                     case DAY_OF_YEAR:
+                        if (d.getDayOfYearPublished() != -1) {
+                            id = manager.addFeature(libLinearFeature, d.getYearPublished());
+                            libLinearFeatureVector.put(id, true);
+                        }
                         break;
                 }
             }

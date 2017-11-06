@@ -5,6 +5,8 @@ import java.io.FileNotFoundException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Represents a single document from our dataset.
@@ -23,7 +25,6 @@ public class Document {
     /**
      * All of the information that this document will hold/update as needed.
      */
-    private int totalWords;
     private double probRelArson, probRelAttack, probRelBombing, probRelKidnapping, probRelRobbery;
 
     public Document(String _filename, String filepath) {
@@ -40,7 +41,7 @@ public class Document {
 
         guesses.put(Slot.ID, filename);
 
-        totalWords = completeText.split("\\s+").length;
+        extractDateInformation();
     }
 
     public boolean containsWordInText(String word) {
@@ -148,31 +149,28 @@ public class Document {
         }
     }
 
+    /**
+     * Helper method. Extracts the date information for the document.
+     */
     private void extractDateInformation() {
-        Scanner s = new Scanner(completeText);
-        s.nextLine();
-        s.nextLine();
+        Matcher dateMatcher = Pattern.compile("\\d{1,2} [A-Z]{3} \\d*").matcher(completeText);
+        if (dateMatcher.find()) {
+            SimpleDateFormat format = new SimpleDateFormat("dd MMM yy");
 
-        Scanner otherS = new Scanner(s.nextLine());
-        String dateString = "";
+            try {
+                Calendar cal = new GregorianCalendar();
+                cal.setTime(format.parse(dateMatcher.group()));
+                yearPublished = cal.get(Calendar.YEAR);
+                monthPublished = cal.get(Calendar.MONTH);
+                dayOfYearPublished = cal.get(Calendar.DAY_OF_YEAR);
 
-        while (otherS.hasNext()) {
-            String str = otherS.next();
-
-            if (Character.isDigit(str.charAt(0))) {
-                dateString += str + " ";
-                dateString += otherS.next() + " ";
-                try {
-                    dateString += otherS.next();
-                } catch (NoSuchElementException e) {
-                    System.out.println("Herp");
-                    e.printStackTrace();
-                }
-            }
+                return;
+            } catch (ParseException e) {}
         }
 
-        otherS.close();
-        s.close();
+        yearPublished = -1;
+        monthPublished = -1;
+        dayOfYearPublished = -1;
     }
 
     public String getFilename() {
@@ -191,5 +189,17 @@ public class Document {
 
                 guesses.put(slot, slotValue.toString());
         }
+    }
+
+    public int getYearPublished() {
+        return yearPublished;
+    }
+
+    public int getMonthPublished() {
+        return monthPublished;
+    }
+
+    public int getDayOfYearPublished() {
+        return dayOfYearPublished;
     }
 }
