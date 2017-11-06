@@ -17,7 +17,7 @@ public class Parser {
         String file_contents = "";
         String dev = "DEV-MUC3-[\\d]*";
         String tst1 = "TST1-MUC3-[\\d]*";
-        String tst2 = "TST1-MUC3-[\\d]*";
+        String tst2 = "TST2-MUC3-[\\d]*";
         Pattern dev_pattern = Pattern.compile(dev);
         Pattern tst1_pattern = Pattern.compile(tst1);
         Pattern tst2_pattern = Pattern.compile(tst2);
