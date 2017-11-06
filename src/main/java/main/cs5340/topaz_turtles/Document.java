@@ -18,9 +18,25 @@ public class Document {
     private TreeMap<Slot, String> guesses; // The guesses we are putting together
     private TreeMap<Slot, String> goldStandard; // The actual answers for the document
 
+    // TODO: This kind of document won't be used I think.
     public Document(String _filename, String filepath) {
         filename = _filename;
         getFullText(filepath);
+
+        guesses = new TreeMap<Slot, String>();
+        goldStandard = new TreeMap<Slot, String>();
+
+
+        for (Slot s : Slot.values()) {
+            guesses.put(s, "");
+            goldStandard.put(s, "");
+        }
+
+        guesses.put(Slot.ID, filename);
+    }
+
+    public Document(String _filename) {
+        filename = _filename;
 
         guesses = new TreeMap<Slot, String>();
         goldStandard = new TreeMap<Slot, String>();
@@ -31,10 +47,6 @@ public class Document {
         }
 
         guesses.put(Slot.ID, filename);
-    }
-
-    public Object getFeatureValue(DocumentFeature feature) {
-        return null; // TODO: This
     }
 
     /**
@@ -50,8 +62,14 @@ public class Document {
         return res;
     }
 
+    public String getFilename(){ return this.filename; }
     public String getCompleteText(){ return this.completeText; }
+    public void setCompleteText(String _text){ this.completeText = _text; }
+    public Object getFeatureValue(DocumentFeature feature) {
+        return null; // TODO: This
+    }
 
+    //TODO: I don't think this method will ever get used either...
     /**
      * Helper method. Grabs the full text from the file found in the path provided. Terminates
      * if no such file exists.
@@ -72,10 +90,5 @@ public class Document {
             System.exit(1);
         }
     }
-
-    //when parsing the text file use regex to find the actual documents.
-    // DEV-MUC3-[\d]*
-    // TST1-MUC3-[\d]*
-    // TST2-MUC3-[\d]*
 
 }
