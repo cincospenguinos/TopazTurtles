@@ -4,6 +4,14 @@ Andre LaFleur and Quinn Luck's NLP project.
 
 ## HOW TO RUN
 
+Simply extract the file, cd into the directory, and run the infoextract script.
+
+```
+tar -xzvf topaz_turtles.tar.gz
+cd topaz_turtles
+./infoextract <filename>
+```
+
 ## Potential Resources
 
 * [Stanford CoreNLP](https://stanfordnlp.github.io/CoreNLP/)

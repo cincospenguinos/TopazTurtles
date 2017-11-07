@@ -4,6 +4,7 @@ trg=target/
 
 echo 'Building and grabbing liblinear...'
 cd liblinear
+make clean &> /dev/null
 make &> /dev/null
 cp train ..
 cp predict ..
