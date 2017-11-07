@@ -36,7 +36,7 @@ public class Main {
 
         if (args[0].equalsIgnoreCase("TRAIN")) {
             setup(true);
-            System.out.println("Classifiers trained! Now run with the file containing each of the documents.");
+            System.out.println("Classifiers trained.");
             System.exit(1);
         } else
             setup(false);

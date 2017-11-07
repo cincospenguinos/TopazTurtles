@@ -19,9 +19,9 @@ if [ $? -eq 0 ]; then
     java -jar $trg/$jar_file TRAIN
 
     echo 'Extracting info on events...'
-    java -jar $trg/$jar_file $1 > topaz_turtles_guesses.txt
+    java -jar $trg/$jar_file $1 > $1.templates
 
-    echo 'Events extracted! Output was put into topaz_turtles_guesses.txt'
+    echo "Events extracted! Output was put into $1.templates"
 else
     echo 'Build failed.'
     cat build.log
