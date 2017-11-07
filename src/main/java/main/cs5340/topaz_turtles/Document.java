@@ -81,8 +81,11 @@ public class Document {
 //        extractLocations();
     }
 
-
-
+    /**
+     * What it says on the tin.
+     * @param word
+     * @return
+     */
     public boolean containsWordInText(String word) {
         Scanner s = new Scanner(fullText);
 
@@ -123,8 +126,12 @@ public class Document {
      */
     public String toString() {
         String res = "";
-        for (Map.Entry e : guesses.entrySet())
-            res += e.getKey() + ": " + e.getValue() + "\n";
+        for (Map.Entry e : guesses.entrySet()) {
+            if (e.getValue().equals(""))
+                res += e.getKey() + ": -" + "\n";
+            else
+                res += e.getKey() + ": " + e.getValue() + "\n";
+        }
 
         return res;
     }

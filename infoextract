@@ -4,18 +4,24 @@ trg=target/
 
 echo 'Building and grabbing liblinear...'
 cd liblinear
-make
+make &> /dev/null
 cp train ..
 cp predict ..
 cd ..
 
-# TODO: Vector files and stuff
-
 echo 'Building package...'
 mvn package > build.log
 if [ $? -eq 0 ]; then
+    echo 'Successful.'
     rm build.log
-    java -jar $trg/$jar_file $1
+
+    echo 'Generating classifiers...'
+    java -jar $trg/$jar_file TRAIN
+
+    echo 'Extracting info on events...'
+    java -jar $trg/$jar_file $1 > topaz_turtles_guesses.txt
+
+    echo 'Events extracted! Output was put into topaz_turtles_guesses.txt'
 else
     echo 'Build failed.'
     cat build.log
