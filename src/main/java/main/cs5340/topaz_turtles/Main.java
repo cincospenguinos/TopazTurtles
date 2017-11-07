@@ -33,7 +33,11 @@ public class Main {
             System.exit(0);
         }
 //        CoreNLP.getPipeline();
-//        setup();
+
+        if (args[0].equalsIgnoreCase("TRAIN")) {
+            setup(true);
+        } else
+            setup(false);
 
 
         ArrayList<Document> documents = extractDocsFromFile(args[0]);
@@ -44,13 +48,13 @@ public class Main {
     }
 
     /**
-     * TODO: This
+     * Extracts all documents from a document.
      *
      * @return all documents included in the file
      */
     private static ArrayList<Document> extractDocsFromFile (String filename) {
         ArrayList<Document> documents = new ArrayList<Document>();
-        String docIdRegexString = "(DEV|TST[\\d]*)-MUC3-[\\d]+";
+        String docIdRegexString = "(DEV|TST[\\d]*)-MUC\\d+-[\\d]+";
         Pattern docIdPattern = Pattern.compile(docIdRegexString);
         StringBuilder builder = new StringBuilder();
 
@@ -239,17 +243,17 @@ public class Main {
 
     private static void setGoldStandards(ArrayList<Document> docs) {
         // TODO: Fix this. Dear lord satan please fix this
-//        File[] answerFiles = new File(DATASET_FILEPATH + "answers/").listFiles();
-//
-//        for (int i = 0; i < answerFiles.length; i++) {
-//            File f = answerFiles[i];
-//
-//            for (Document d : docs) {
-//                if (f.getName().contains(d.getFilename())) {
-//                    d.setGoldStandard(f.getPath());
-//                }
-//            }
-//        }
+        File[] answerFiles = new File(DATASET_FILEPATH + "answers/").listFiles();
+
+        for (int i = 0; i < answerFiles.length; i++) {
+            File f = answerFiles[i];
+
+            for (Document d : docs) {
+                if (f.getName().contains(d.getId())) {
+                    d.setGoldStandard(f.getPath());
+                }
+            }
+        }
     }
 
     private static ArrayList<Document> getAllDocsStartsWith(String str) {
@@ -275,11 +279,7 @@ public class Main {
         if (!f.exists()) {
             return null;
         } else {
-            String[] split = filePath.split("\\/");
-            String fileName = split[split.length - 1];
-            // TODO: Fix this
-            return null;
-//            return new Document(fileName, filePath);
+            return new Document(filePath);
         }
     }
 
@@ -287,7 +287,7 @@ public class Main {
      * Function that runs first thing. Use this to generate any files you will need, grab any data
      * you may need to have put together, etc.
      */
-    private static void setup() {
+    private static void setup(boolean createClassifier) {
         // Setup local data directory
         File path = new File(LOCAL_DATA_FILEPATH);
 
@@ -351,26 +351,28 @@ public class Main {
             }
         }
 
-        // Grab all the docs and generate vector files from them
-        ArrayList<Document> devDocs = getAllDocsStartsWith("DEV");
-        ArrayList<Document> testDocs = getAllDocsStartsWith("TST");
+        if (createClassifier) {
+            // Grab all the docs and generate vector files from them
+            ArrayList<Document> devDocs = getAllDocsStartsWith("DEV");
+            ArrayList<Document> testDocs = getAllDocsStartsWith("TST");
 
-        setGoldStandards(devDocs);
-        setGoldStandards(testDocs);
+            setGoldStandards(devDocs);
+            setGoldStandards(testDocs);
 
-        for (Slot s : Slot.machineLearningSlots()) {
-            generateVectorFile(devDocs, LOCAL_DATA_FILEPATH + "DEV-" + s.toString().replace(" ", "_") + ".vector", s);
-            generateVectorFile(testDocs, LOCAL_DATA_FILEPATH + "TEST-" + s.toString().replace(" ", "_") + ".vector", s);
-        }
+            for (Slot s : Slot.machineLearningSlots()) {
+                generateVectorFile(devDocs, LOCAL_DATA_FILEPATH + "DEV-" + s.toString().replace(" ", "_") + ".vector", s);
+                generateVectorFile(testDocs, LOCAL_DATA_FILEPATH + "TEST-" + s.toString().replace(" ", "_") + ".vector", s);
+            }
 
-        // Generate model files from each of the dev vector files
-        for (File f : new File(LOCAL_DATA_FILEPATH).listFiles()) {
-            if (f.getName().contains(".vector") && f.getName().startsWith("DEV")) {
-                try {
-                    Runtime.getRuntime().exec("./train " + f.getCanonicalPath() + " "
-                            + LOCAL_DATA_FILEPATH + f.getName().replace(".vector", ".models"));
-                } catch (IOException e) {
-                    e.printStackTrace();
+            // Generate model files from each of the dev vector files
+            for (File f : new File(LOCAL_DATA_FILEPATH).listFiles()) {
+                if (f.getName().contains(".vector") && f.getName().startsWith("DEV")) {
+                    try {
+                        Runtime.getRuntime().exec("./train " + f.getCanonicalPath() + " "
+                                + LOCAL_DATA_FILEPATH + f.getName().replace(".vector", ".models"));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         }

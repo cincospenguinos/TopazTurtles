@@ -1,7 +1,6 @@
 package main.cs5340.topaz_turtles;
 
 import edu.stanford.nlp.pipeline.Annotation;
-import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -20,7 +19,7 @@ import java.util.regex.Pattern;
  */
 public class Document {
 
-    private String completeText; // The complete text of the document
+    private String fullText = ""; // The complete text of the document
 
     private int yearPublished;
     private int monthPublished;
@@ -32,7 +31,7 @@ public class Document {
 
     // TODO: Holy shit fix this
     public Document(String id, String _fullText) {
-        completeText = _fullText;
+        fullText = _fullText;
 
         guesses = new TreeMap<Slot, String>();
         goldStandard = new TreeMap<Slot, String>();
@@ -51,10 +50,39 @@ public class Document {
 //        extractLocations();
     }
 
+    public Document(String filepath) {
+        try {
+            Scanner scanner = new Scanner(new File(filepath));
+
+            while(scanner.hasNextLine()) {
+                fullText += scanner.nextLine() + "\n";
+            }
+
+            scanner.close();
+        } catch (FileNotFoundException e) {
+            System.err.println("Could not find file \"" + filepath + "\"");
+            System.exit(1);
+        }
+
+        guesses = new TreeMap<Slot, String>();
+        goldStandard = new TreeMap<Slot, String>();
+
+        for (Slot s : Slot.values()) {
+            guesses.put(s, "");
+            goldStandard.put(s, "");
+        }
+
+        Matcher matcher = Pattern.compile("(DEV|TST[\\d]*)-MUC\\d+-[\\d]+").matcher(fullText);
+        if (matcher.find())
+            guesses.put(Slot.ID, matcher.group());
+
+        potentialLocations = new ArrayList<String>();
+    }
+
 
 
     public boolean containsWordInText(String word) {
-        Scanner s = new Scanner(completeText);
+        Scanner s = new Scanner(fullText);
 
         while (s.hasNextLine())
             if (s.nextLine().contains(word.toUpperCase()))
@@ -99,8 +127,8 @@ public class Document {
         return res;
     }
 
-    public String getCompleteText(){ return this.completeText; }
-    public void setCompleteText(String _text){ this.completeText = _text; }
+    public String getFullText(){ return this.fullText; }
+    public void setFullText(String _text){ this.fullText = _text; }
 
     //TODO: I don't think this method will ever get used either...
     /**
@@ -152,7 +180,7 @@ public class Document {
             Scanner scanner = new Scanner(new File(filepath));
 
             while(scanner.hasNextLine()) {
-                completeText += scanner.nextLine() + "\n";
+                fullText += scanner.nextLine() + "\n";
             }
 
             scanner.close();
@@ -166,7 +194,7 @@ public class Document {
      * Helper method. Extracts the date information for the document.
      */
     private void extractDateInformation() {
-        Matcher dateMatcher = Pattern.compile("\\d{1,2} [A-Z]{3} \\d*").matcher(completeText);
+        Matcher dateMatcher = Pattern.compile("\\d{1,2} [A-Z]{3} \\d*").matcher(fullText);
         if (dateMatcher.find()) {
             SimpleDateFormat format = new SimpleDateFormat("dd MMM yy");
 
@@ -187,7 +215,7 @@ public class Document {
     }
 
     private void extractLocations() {
-        Annotation annotation = new Annotation(completeText);
+        Annotation annotation = new Annotation(fullText);
         CoreNLP.getPipeline().annotate(annotation);
         System.out.println(annotation);
     }
@@ -216,5 +244,9 @@ public class Document {
 
     public int getDayOfYearPublished() {
         return dayOfYearPublished;
+    }
+
+    public CharSequence getId() {
+        return guesses.get(Slot.ID);
     }
 }
