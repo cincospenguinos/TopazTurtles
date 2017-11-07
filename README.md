@@ -24,7 +24,7 @@ Here's the parts we will need:
 
 ## Notes
 
-* Our machine learning library is `org.apache.spark.ml`. Documentation is [here](http://spark.apache.org/docs/latest/mllib-guide.html).
+* Our machine learning library is `org.apache.spark.mllib`. Documentation is [here](http://spark.apache.org/docs/latest/mllib-guide.html).
   We picked this one because it allows us to use local vectors and the like. Trust me; it will help tremendously.
 * [Here](https://stanfordnlp.github.io/CoreNLP/)'s some docs on StanfordNLP Core. And [here](https://github.com/stanfordnlp/CoreNLP)'s
   the GitHub page.
