@@ -7,6 +7,8 @@ import com.google.gson.Gson;
 import java.io.*;
 import java.lang.reflect.Type;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * The main class of the application.
@@ -31,15 +33,60 @@ public class Main {
             System.exit(0);
         }
 //        CoreNLP.getPipeline();
-        setup();
+//        setup();
 
-        String file_name = args[0];
-        Parser.parseFile(file_name);
-        ArrayList<Document> all_documents = Parser.getAllDocs();
-        for(Document d : all_documents){
-            fillSlots(d);
+
+        ArrayList<Document> documents = extractDocsFromFile(args[0]);
+        for(Document d : documents){
+//            fillSlots(d);
             System.out.println(d);
         }
+    }
+
+    /**
+     * TODO: This
+     *
+     * @return all documents included in the file
+     */
+    private static ArrayList<Document> extractDocsFromFile (String filename) {
+        ArrayList<Document> documents = new ArrayList<Document>();
+        String docIdRegexString = "(DEV|TST[\\d]*)-MUC3-[\\d]+";
+        Pattern docIdPattern = Pattern.compile(docIdRegexString);
+        StringBuilder builder = new StringBuilder();
+
+        try {
+            Scanner s = new Scanner(new File(filename));
+
+            while(s.hasNextLine()) {
+                String line = s.nextLine();
+
+                if (!line.trim().equals("")) {
+                    builder.append(line);
+                    builder.append("\n");
+                }
+            }
+
+            s.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        String fullTextOfFile = builder.toString();
+
+        String[] docs = fullTextOfFile.split(docIdRegexString);
+        ArrayList<String> stringIds = new ArrayList<String>();
+
+        Matcher idMatcher = docIdPattern.matcher(fullTextOfFile);
+        while(idMatcher.find()) {
+            stringIds.add(idMatcher.group());
+        }
+
+        for (int i = 0; i < stringIds.size(); i++) {
+            Document d = new Document(stringIds.get(i), docs[i + 1]);
+            documents.add(d);
+        }
+
+        return documents;
     }
 
     /**
@@ -48,52 +95,52 @@ public class Main {
      * @param d - Document to make guesses on
      */
     private static void fillSlots(Document d) {
-        for (Slot slot : Slot.values()) {
-            switch(slot) {
-                case INCIDENT:
-                case PERP_INDIV:
-                case PERP_ORG:
-                    ArrayList<Document> aSingleDoc = new ArrayList<Document>();
-                    aSingleDoc.add(d);
-
-                    String vectorFileName = LOCAL_DATA_FILEPATH + d.getFilename() + ".vector";
-                    String predictionFileName = LOCAL_DATA_FILEPATH + d.getFilename() + ".prediction";
-                    String modelFileName = LOCAL_DATA_FILEPATH + "DEV-" + slot.toString().replace(" ", "_") + ".models";
-
-                    // TODO: Fix this so that slot is used instead of INCIDENT
-                    generateVectorFile(aSingleDoc, vectorFileName, Slot.INCIDENT);
-                    try {
-                        String exec = "./predict " + vectorFileName + " " + modelFileName + " " + predictionFileName;
-                        Process p = Runtime.getRuntime().exec(exec);
-                        int exitCode = p.waitFor();
-
-                        if (exitCode != 0) {
-                            System.err.println("exit code for " + d.getFilename() + " was " + exitCode);
-                            return;
-                        }
-
-                        Scanner s = new Scanner(new File(predictionFileName));
-                        int incidentTypeOrdinal = Integer.parseInt(s.next());
-                        s.close();
-
-                        d.setSlot(Slot.INCIDENT, IncidentType.fromOrdinal(incidentTypeOrdinal));
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-
-                    break;
-
-                    // These are where Quinn will do his work
-                case TARGET:
-                    break;
-                case VICTIM:
-                    break;
-                case WEAPON:
-                    break;
-            }
-        }
+//        for (Slot slot : Slot.values()) {
+//            switch(slot) {
+//                case INCIDENT:
+//                case PERP_INDIV:
+//                case PERP_ORG:
+//                    ArrayList<Document> aSingleDoc = new ArrayList<Document>();
+//                    aSingleDoc.add(d);
+//
+//                    String vectorFileName = LOCAL_DATA_FILEPATH + d.getFilename() + ".vector";
+//                    String predictionFileName = LOCAL_DATA_FILEPATH + d.getFilename() + ".prediction";
+//                    String modelFileName = LOCAL_DATA_FILEPATH + "DEV-" + slot.toString().replace(" ", "_") + ".models";
+//
+//                    // TODO: Fix this so that slot is used instead of INCIDENT
+//                    generateVectorFile(aSingleDoc, vectorFileName, Slot.INCIDENT);
+//                    try {
+//                        String exec = "./predict " + vectorFileName + " " + modelFileName + " " + predictionFileName;
+//                        Process p = Runtime.getRuntime().exec(exec);
+//                        int exitCode = p.waitFor();
+//
+//                        if (exitCode != 0) {
+//                            System.err.println("exit code for " + d.getFilename() + " was " + exitCode);
+//                            return;
+//                        }
+//
+//                        Scanner s = new Scanner(new File(predictionFileName));
+//                        int incidentTypeOrdinal = Integer.parseInt(s.next());
+//                        s.close();
+//
+//                        d.setSlot(Slot.INCIDENT, IncidentType.fromOrdinal(incidentTypeOrdinal));
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    } catch (InterruptedException e) {
+//                        e.printStackTrace();
+//                    }
+//
+//                    break;
+//
+//                    // These are where Quinn will do his work
+//                case TARGET:
+//                    break;
+//                case VICTIM:
+//                    break;
+//                case WEAPON:
+//                    break;
+//            }
+//        }
     }
 
     /**
@@ -191,17 +238,18 @@ public class Main {
     }
 
     private static void setGoldStandards(ArrayList<Document> docs) {
-        File[] answerFiles = new File(DATASET_FILEPATH + "answers/").listFiles();
-
-        for (int i = 0; i < answerFiles.length; i++) {
-            File f = answerFiles[i];
-
-            for (Document d : docs) {
-                if (f.getName().contains(d.getFilename())) {
-                    d.setGoldStandard(f.getPath());
-                }
-            }
-        }
+        // TODO: Fix this. Dear lord satan please fix this
+//        File[] answerFiles = new File(DATASET_FILEPATH + "answers/").listFiles();
+//
+//        for (int i = 0; i < answerFiles.length; i++) {
+//            File f = answerFiles[i];
+//
+//            for (Document d : docs) {
+//                if (f.getName().contains(d.getFilename())) {
+//                    d.setGoldStandard(f.getPath());
+//                }
+//            }
+//        }
     }
 
     private static ArrayList<Document> getAllDocsStartsWith(String str) {
@@ -230,7 +278,8 @@ public class Main {
             String[] split = filePath.split("\\/");
             String fileName = split[split.length - 1];
             // TODO: Fix this
-            return new Document(fileName, filePath);
+            return null;
+//            return new Document(fileName, filePath);
         }
     }
 

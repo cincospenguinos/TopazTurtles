@@ -20,7 +20,6 @@ import java.util.regex.Pattern;
  */
 public class Document {
 
-    private String filename; // Name of this document
     private String completeText; // The complete text of the document
 
     private int yearPublished;
@@ -31,11 +30,9 @@ public class Document {
     private TreeMap<Slot, String> guesses; // The guesses we are putting together
     private TreeMap<Slot, String> goldStandard; // The actual answers for the document
 
-    // TODO: This kind of document won't be used I think.
-    public Document(String _filename) {
-        filename = _filename;
-//        getFullText(filepath);
-        // TODO: Figure something out with the full text here
+    // TODO: Holy shit fix this
+    public Document(String id, String _fullText) {
+        completeText = _fullText;
 
         guesses = new TreeMap<Slot, String>();
         goldStandard = new TreeMap<Slot, String>();
@@ -46,12 +43,12 @@ public class Document {
             goldStandard.put(s, "");
         }
 
-        guesses.put(Slot.ID, filename);
+        guesses.put(Slot.ID, id);
 
         potentialLocations = new ArrayList<String>();
 
-        extractDateInformation();
-        extractLocations();
+//        extractDateInformation();
+//        extractLocations();
     }
 
 
@@ -193,10 +190,6 @@ public class Document {
         Annotation annotation = new Annotation(completeText);
         CoreNLP.getPipeline().annotate(annotation);
         System.out.println(annotation);
-    }
-
-    public String getFilename() {
-        return filename;
     }
 
     public String getGoldStandardValue(Slot slot) {
