@@ -36,13 +36,15 @@ public class Main {
 
         if (args[0].equalsIgnoreCase("TRAIN")) {
             setup(true);
+            System.out.println("Classifiers trained! Now run with the file containing each of the documents.");
+            System.exit(1);
         } else
             setup(false);
 
 
         ArrayList<Document> documents = extractDocsFromFile(args[0]);
         for(Document d : documents){
-//            fillSlots(d);
+            fillSlots(d);
             System.out.println(d);
         }
     }
@@ -99,52 +101,51 @@ public class Main {
      * @param d - Document to make guesses on
      */
     private static void fillSlots(Document d) {
-//        for (Slot slot : Slot.values()) {
-//            switch(slot) {
-//                case INCIDENT:
-//                case PERP_INDIV:
-//                case PERP_ORG:
-//                    ArrayList<Document> aSingleDoc = new ArrayList<Document>();
-//                    aSingleDoc.add(d);
-//
-//                    String vectorFileName = LOCAL_DATA_FILEPATH + d.getFilename() + ".vector";
-//                    String predictionFileName = LOCAL_DATA_FILEPATH + d.getFilename() + ".prediction";
-//                    String modelFileName = LOCAL_DATA_FILEPATH + "DEV-" + slot.toString().replace(" ", "_") + ".models";
-//
-//                    // TODO: Fix this so that slot is used instead of INCIDENT
-//                    generateVectorFile(aSingleDoc, vectorFileName, Slot.INCIDENT);
-//                    try {
-//                        String exec = "./predict " + vectorFileName + " " + modelFileName + " " + predictionFileName;
-//                        Process p = Runtime.getRuntime().exec(exec);
-//                        int exitCode = p.waitFor();
-//
-//                        if (exitCode != 0) {
-//                            System.err.println("exit code for " + d.getFilename() + " was " + exitCode);
-//                            return;
-//                        }
-//
-//                        Scanner s = new Scanner(new File(predictionFileName));
-//                        int incidentTypeOrdinal = Integer.parseInt(s.next());
-//                        s.close();
-//
-//                        d.setSlot(Slot.INCIDENT, IncidentType.fromOrdinal(incidentTypeOrdinal));
-//                    } catch (IOException e) {
-//                        e.printStackTrace();
-//                    } catch (InterruptedException e) {
-//                        e.printStackTrace();
-//                    }
-//
-//                    break;
-//
-//                    // These are where Quinn will do his work
-//                case TARGET:
-//                    break;
-//                case VICTIM:
-//                    break;
-//                case WEAPON:
-//                    break;
-//            }
-//        }
+        for (Slot slot : Slot.values()) {
+            switch(slot) {
+                case INCIDENT:
+                    ArrayList<Document> aSingleDoc = new ArrayList<Document>();
+                    aSingleDoc.add(d);
+
+                    String vectorFileName = LOCAL_DATA_FILEPATH + d.getId() + ".vector";
+                    String predictionFileName = LOCAL_DATA_FILEPATH + d.getId() + ".prediction";
+                    String modelFileName = LOCAL_DATA_FILEPATH + "DEV-" + slot.toString().replace(" ", "_") + ".models";
+
+                    generateVectorFile(aSingleDoc, vectorFileName, slot);
+                    try {
+                        String exec = "./predict " + vectorFileName + " " + modelFileName + " " + predictionFileName;
+                        Process p = Runtime.getRuntime().exec(exec);
+                        int exitCode = p.waitFor();
+
+                        if (exitCode != 0) {
+                            System.err.println("exit code for " + d.getId() + " was " + exitCode);
+                            return;
+                        }
+
+                        Scanner s = new Scanner(new File(predictionFileName));
+                        int incidentTypeOrdinal = Integer.parseInt(s.next());
+                        s.close();
+
+                        d.setSlot(Slot.INCIDENT, IncidentType.fromOrdinal(incidentTypeOrdinal));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+
+                    break;
+
+                case PERP_INDIV:
+                case PERP_ORG:
+                    // These are where Quinn will do his work
+                case TARGET:
+                    break;
+                case VICTIM:
+                    break;
+                case WEAPON:
+                    break;
+            }
+        }
     }
 
     /**

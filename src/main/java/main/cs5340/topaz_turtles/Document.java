@@ -29,7 +29,6 @@ public class Document {
     private TreeMap<Slot, String> guesses; // The guesses we are putting together
     private TreeMap<Slot, String> goldStandard; // The actual answers for the document
 
-    // TODO: Holy shit fix this
     public Document(String id, String _fullText) {
         fullText = _fullText;
 
@@ -46,7 +45,7 @@ public class Document {
 
         potentialLocations = new ArrayList<String>();
 
-//        extractDateInformation();
+        extractDateInformation();
 //        extractLocations();
     }
 
@@ -77,6 +76,9 @@ public class Document {
             guesses.put(Slot.ID, matcher.group());
 
         potentialLocations = new ArrayList<String>();
+
+        extractDateInformation();
+//        extractLocations();
     }
 
 
