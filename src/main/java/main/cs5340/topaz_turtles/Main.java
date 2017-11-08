@@ -43,6 +43,12 @@ public class Main {
 
 
         ArrayList<Document> documents = extractDocsFromFile(args[0]);
+//        ArrayList<Document> documents = parseFile(args[0]);
+//        for(Document d : documents){
+//            System.out.println(d.getFullText());
+//            System.out.println(d.getId());
+//        }
+
         for(Document d : documents){
             fillSlots(d);
             System.out.println(d);
@@ -96,6 +102,69 @@ public class Main {
     }
 
     /**
+     * This method parses a file, and is probably only going to be used for testing.
+     */
+    public static ArrayList<Document> parseFile(String filename){
+        ArrayList<Document> all_docs = new ArrayList<Document>();
+        String file_contents = "";
+        String dev = "DEV-MUC3-[\\d]*";
+        String tst1 = "TST1-MUC3-[\\d]*";
+        String tst2 = "TST2-MUC3-[\\d]*";
+        Pattern dev_pattern = Pattern.compile(dev);
+        Pattern tst1_pattern = Pattern.compile(tst1);
+        Pattern tst2_pattern = Pattern.compile(tst2);
+        Document to_add = new Document("", "");
+        try {
+            Scanner scanner = new Scanner(new File(filename));
+            while(scanner.hasNext()){
+                String[] line = scanner.nextLine().split("\\s+");
+                for (String s : line) {
+                    Matcher dev_matcher = dev_pattern.matcher(s);
+                    Matcher tst1_matcher = tst1_pattern.matcher(s);
+                    Matcher tst2_matcher = tst2_pattern.matcher(s);
+                    if(dev_matcher.matches()){
+                        to_add.setFullText(file_contents);
+                        if(file_contents != null){
+                            all_docs.add(to_add);
+                        }
+                        to_add = new Document(s, file_contents);
+                        file_contents = "";
+                        break;
+                    }
+                    else if(tst1_matcher.matches()){
+                        to_add.setFullText(file_contents);
+                        if(!file_contents.equals("")){
+                            all_docs.add(to_add);
+                        }
+                        to_add = new Document(s, file_contents);
+                        file_contents = "";
+                        break;
+                    }
+                    else if(tst2_matcher.matches()){
+                        to_add.setFullText(file_contents);
+                        if(file_contents != null){
+                            all_docs.add(to_add);
+                        }
+                        to_add = new Document(s, file_contents);
+                        file_contents = "";
+                        break;
+                    }
+                    else{
+                        file_contents += s + " ";
+                    }
+                }
+            }
+            to_add.setFullText(file_contents);
+            all_docs.add(to_add);
+            scanner.close();
+        }
+        catch (FileNotFoundException e){
+            e.printStackTrace();
+        }
+        return all_docs;
+    }
+
+    /**
      * Fills the various slots on the document.
      *
      * @param d - Document to make guesses on
@@ -114,7 +183,7 @@ public class Main {
                     generateVectorFile(aSingleDoc, vectorFileName, slot);
                     try {
                         String exec = "./predict " + vectorFileName + " " + modelFileName + " " + predictionFileName;
-                        Process p = Runtime.getRuntime().exec(exec);
+                        Process p = Runtime.getRuntime().exec(exec); //TODO: it breaks here for i dont know why...
                         int exitCode = p.waitFor();
 
                         if (exitCode != 0) {
