@@ -1,14 +1,20 @@
 package main.cs5340.topaz_turtles;
 
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
+
+import com.google.gson.JsonArray;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.Gson;
 
+import javax.json.JsonObject;
 import java.io.*;
 import java.lang.reflect.Type;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 
 /**
  * The main class of the application.
@@ -41,64 +47,18 @@ public class Main {
         } else
             setup(false);
 
-
-        ArrayList<Document> documents = extractDocsFromFile(args[0]);
-//        ArrayList<Document> documents = parseFile(args[0]);
+        ArrayList<Document> documents = parseFile(args[0]);
 //        for(Document d : documents){
 //            System.out.println(d.getFullText());
 //            System.out.println(d.getId());
 //        }
 
+
         for(Document d : documents){
+            getWeaponWords(d.getFullText());
             fillSlots(d);
             System.out.println(d);
         }
-    }
-
-    /**
-     * Extracts all documents from a document.
-     *
-     * @return all documents included in the file
-     */
-    private static ArrayList<Document> extractDocsFromFile (String filename) {
-        ArrayList<Document> documents = new ArrayList<Document>();
-        String docIdRegexString = "(DEV|TST[\\d]*)-MUC\\d+-[\\d]+";
-        Pattern docIdPattern = Pattern.compile(docIdRegexString);
-        StringBuilder builder = new StringBuilder();
-
-        try {
-            Scanner s = new Scanner(new File(filename));
-
-            while(s.hasNextLine()) {
-                String line = s.nextLine();
-
-                if (!line.trim().equals("")) {
-                    builder.append(line);
-                    builder.append("\n");
-                }
-            }
-
-            s.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-
-        String fullTextOfFile = builder.toString();
-
-        String[] docs = fullTextOfFile.split(docIdRegexString);
-        ArrayList<String> stringIds = new ArrayList<String>();
-
-        Matcher idMatcher = docIdPattern.matcher(fullTextOfFile);
-        while(idMatcher.find()) {
-            stringIds.add(idMatcher.group());
-        }
-
-        for (int i = 0; i < stringIds.size(); i++) {
-            Document d = new Document(stringIds.get(i), docs[i + 1]);
-            documents.add(d);
-        }
-
-        return documents;
     }
 
     /**
@@ -450,5 +410,54 @@ public class Main {
 
     public static TreeMap<IncidentType, DataMuseWord[]> getRelatedWordsToEachIncident() {
         return relatedWordsToEachIncident;
+    }
+
+    public static void getWeaponWords(String file_contents){
+        String[] weapons = {"rifle", "gun", "sidearm", "glock", "knife", "bomb", "molotov", "grenade", "knucks", "bludgeon",
+                "car", "stab", "shoot"};
+        try {
+            for(String s : weapons){
+                String url = "http://api.datamuse.com/words?ml=" + s;
+                URL obj = new URL(url);
+                HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+                con.setRequestMethod("GET");
+                con.setDoOutput(true);
+                con.setRequestProperty("Content-Type", "application/json");
+                con.setRequestProperty("Accept", "application/json");
+                System.out.println(con.getResponseCode());
+                BufferedReader br = new BufferedReader(new InputStreamReader((con.getInputStream())));
+                String output;
+                String[] split_output = null;
+                System.out.println("Output from Server .... \n");
+                while ((output = br.readLine()) != null) {
+                    split_output = output.split("}").clone();
+                    //System.out.println(output);
+                }
+                //I was able to split the string up, now I need to place it in a gson object and get each word out.
+                for(int i = 0; i < split_output.length; i++){
+                    split_output[i] += "}";
+                }
+                // this part formats the string into Json for the Gson object
+                for(int j = 0; j < split_output.length; j++) {
+                    StringBuilder builder = new StringBuilder(split_output[j]);
+                    builder.setCharAt(0, ' ');
+                    split_output[j] = builder.toString().trim();
+                }
+
+                // right about here, I can use Gson to get the weapons from the string.
+                System.out.println(split_output.toString());
+
+                
+                // if score > 31500, add it to the weapons file, otherwise discard the word
+            }
+
+
+            PrintWriter writer = new PrintWriter("weapons.txt", "UTF-8");
+
+            writer.println("blah");
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
     }
 }
