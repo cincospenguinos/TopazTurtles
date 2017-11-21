@@ -30,6 +30,7 @@ public class Main {
     public static final String TEXT_FILEPATH = DATASET_FILEPATH + "texts/";
 
     private static TreeMap<IncidentType, DataMuseWord[]> relatedWordsToEachIncident;
+    private static TreeSet<String> weapon_words;
     private static TreeSet<String> locations;
     private static TreeSet<String> individuals;
 
@@ -53,12 +54,11 @@ public class Main {
 //            System.out.println(d.getId());
 //        }
 
-
-        for(Document d : documents){
-            getWeaponWords(d.getFullText());
-            fillSlots(d);
-            System.out.println(d);
-        }
+//        for(Document d : documents){
+//            getWeaponWords(d.getFullText());
+//            fillSlots(d);
+//            System.out.println(d);
+//        }
     }
 
     /**
@@ -342,9 +342,13 @@ public class Main {
         if (!relatedWordsFile.exists()) {
             relatedWordsToEachIncident = new TreeMap<IncidentType, DataMuseWord[]>();
 
-            for (IncidentType t : IncidentType.values()) {
-                DataMuseWord[] words = DataMuse.getWordsRelatedTo(t.toString().toLowerCase());
-                relatedWordsToEachIncident.put(t, words);
+            // TODO: right here make a new string[] with the words I specified below.
+            // TODO: also, make a limit for the score so all of the words don't go in.
+            String[] weapons = {"rifle", "gun", "sidearm", "glock", "knife", "bomb", "molotov", "grenade", "knucks", "bludgeon",
+                    "car", "stab", "shoot"};
+            for (String t : weapons) {
+                DataMuseWord[] words = DataMuse.getWordsRelatedTo(t.toLowerCase());
+                weapon_words.add(t);
             }
 
             Gson gson = new Gson();
@@ -447,7 +451,7 @@ public class Main {
                 // right about here, I can use Gson to get the weapons from the string.
                 System.out.println(split_output.toString());
 
-                
+
                 // if score > 31500, add it to the weapons file, otherwise discard the word
             }
 
