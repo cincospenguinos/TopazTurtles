@@ -19,15 +19,17 @@ import java.util.regex.Pattern;
  */
 public class Main {
 
-    public static final String LOCAL_DATA_FILEPATH = ".topaz_turtles_data/";
-    public static final String RELATED_WORDS_FILEPATH = LOCAL_DATA_FILEPATH + "related_words.json";
-    public static final String LOCATIONS_FILEPATH = LOCAL_DATA_FILEPATH + "locationsMasterList.json";
-    public static final String DATASET_FILEPATH = "dataset/";
-    public static final String TEXT_FILEPATH = DATASET_FILEPATH + "texts/";
+    private static final String LOCAL_DATA_FILEPATH = ".topaz_turtles_data/";
+    private static final String RELATED_WORDS_FILEPATH = LOCAL_DATA_FILEPATH + "related_words.json";
+    private static final String LOCATIONS_FILEPATH = LOCAL_DATA_FILEPATH + "locationsMasterList.json";
+    private static final String DATASET_FILEPATH = "dataset/";
+    private static final String TEXT_FILEPATH = DATASET_FILEPATH + "texts/";
+    private static final String ORGANIZATIONS_FILEPATH = LOCAL_DATA_FILEPATH + "organizations.json";
 
     private static TreeMap<IncidentType, DataMuseWord[]> relatedWordsToEachIncident;
     private static TreeSet<String> locationsMasterList;
     private static TreeSet<String> individuals;
+    private static TreeSet<String> organizationsMasterList;
 
     public static void main(String[] args) {
         if (args.length == 0 || args.length > 1) {
@@ -103,14 +105,15 @@ public class Main {
      */
     private static void fillSlots(Document d) {
         for (Slot slot : Slot.values()) {
+            ArrayList<Document> aSingleDoc;
+            String vectorFileName = LOCAL_DATA_FILEPATH + d.getId() + ".vector";
+            String predictionFileName = LOCAL_DATA_FILEPATH + d.getId() + ".prediction";
+            String modelFileName = LOCAL_DATA_FILEPATH + "DEV-" + slot.toString().replace(" ", "_") + ".models";
+
             switch(slot) {
                 case INCIDENT:
-                    ArrayList<Document> aSingleDoc = new ArrayList<Document>();
+                    aSingleDoc = new ArrayList<Document>();
                     aSingleDoc.add(d);
-
-                    String vectorFileName = LOCAL_DATA_FILEPATH + d.getId() + ".vector";
-                    String predictionFileName = LOCAL_DATA_FILEPATH + d.getId() + ".prediction";
-                    String modelFileName = LOCAL_DATA_FILEPATH + "DEV-" + slot.toString().replace(" ", "_") + ".models";
 
                     generateVectorFile(aSingleDoc, vectorFileName, slot);
                     try {
@@ -137,7 +140,35 @@ public class Main {
                     break;
 
                 case PERP_INDIV:
+                    break;
                 case PERP_ORG:
+                    aSingleDoc = new ArrayList<Document>();
+                    aSingleDoc.add(d);
+
+                    generateVectorFile(aSingleDoc, vectorFileName, slot);
+                    try {
+                        String exec = "./predict " + vectorFileName + " " + modelFileName + " " + predictionFileName;
+                        Process p = Runtime.getRuntime().exec(exec);
+                        int exitCode = p.waitFor();
+
+                        if (exitCode != 0) {
+                            System.err.println("exit code for " + d.getId() + " was " + exitCode);
+                            return;
+                        }
+
+                        Scanner s = new Scanner(new File(predictionFileName));
+                        int perpOrgId = Integer.parseInt(s.next());
+                        s.close();
+
+                        String perpOrg = (String) PerpetratorLabelManager.getInstance().getLabelFromId(Slot.PERP_ORG, perpOrgId);
+
+                        if (perpOrg != null)
+                            d.setSlot(Slot.PERP_ORG, perpOrg);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                     break;
                     // These are where Quinn will do his work
                 case TARGET:
@@ -161,6 +192,7 @@ public class Main {
     private static void generateVectorFile(ArrayList<Document> docs, String filename, Slot slot) {
         StringBuilder vectorFileBuilder = new StringBuilder();
         LibLinearFeatureManager manager = LibLinearFeatureManager.getInstance();
+        PerpetratorLabelManager perpetratorLabelManager = PerpetratorLabelManager.getInstance();
 
         // For each document...
         for (Document d : docs) {
@@ -181,7 +213,7 @@ public class Main {
                         break;
                     case CONTAINS_LOCATION:
                         Set<String> locs = new TreeSet<String>();
-                        locs.addAll(getLocationsFrom(d));
+                        locs.addAll(getTagValues(d, "location"));
 
                         for (String l : locationsMasterList) {
                             boolean isTrue = locs.contains(l);
@@ -207,6 +239,16 @@ public class Main {
                             libLinearFeatureVector.put(id, true);
                         }
                         break;
+                    case CONTAINS_ORGANIZATION:
+                        Set<String> orgs = new TreeSet<String>();
+                        orgs.addAll(getTagValues(d, "organization"));
+
+                        for (String l : organizationsMasterList) {
+                            boolean isTrue = orgs.contains(l);
+                            id = manager.addFeature(libLinearFeature, l);
+                            libLinearFeatureVector.put(id, isTrue);
+                        }
+                        break;
                 }
             }
 
@@ -223,24 +265,29 @@ public class Main {
                         incidentLabelId = incident.ordinal();
 
                     vectorFileBuilder.append(incidentLabelId);
-                    vectorFileBuilder.append(" ");
 
-                    for (Map.Entry<Integer, Boolean> e : libLinearFeatureVector.entrySet()) {
-                        if (e.getValue()) {
-                            vectorFileBuilder.append(e.getKey());
-                            vectorFileBuilder.append(":1 ");
-                        }
-                    }
-
-                    vectorFileBuilder.append("\n");
                     break;
                 case PERP_INDIV:
                     // TODO: This
                     break;
                 case PERP_ORG:
-                    // TODO: This
+                    String perpetratorOrg = d.getGoldStandardValue(Slot.PERP_ORG);
+                    int perpetratorOrgId = perpetratorLabelManager.addLabel(Slot.PERP_ORG, perpetratorOrg);
+                    vectorFileBuilder.append(perpetratorOrgId);
                     break;
             }
+
+            // Append the entire libLinearFeatureVector to the line and call it a day
+            vectorFileBuilder.append(" ");
+
+            for (Map.Entry<Integer, Boolean> e : libLinearFeatureVector.entrySet()) {
+                if (e.getValue()) {
+                    vectorFileBuilder.append(e.getKey());
+                    vectorFileBuilder.append(":1 ");
+                }
+            }
+
+            vectorFileBuilder.append("\n");
         }
 
         try {
@@ -253,7 +300,6 @@ public class Main {
     }
 
     private static void setGoldStandards(ArrayList<Document> docs) {
-        // TODO: Fix this. Dear lord satan please fix this
         File[] answerFiles = new File(DATASET_FILEPATH + "answers/").listFiles();
 
         for (int i = 0; i < answerFiles.length; i++) {
@@ -370,10 +416,9 @@ public class Main {
             ArrayList<Document> allDocs = getAllDocsStartsWith("DEV");
             allDocs.addAll(getAllDocsStartsWith("TST"));
 
-            System.out.println("Gathering all locationsMasterList from all docs...");
-            for (Document d : allDocs) {
-                locationsMasterList.addAll(getLocationsFrom(d));
-            }
+            System.out.println("Gathering all locations from all docs...");
+            for (Document d : allDocs)
+                locationsMasterList.addAll(getTagValues(d, "location"));
 
             Gson gson = new Gson();
 
@@ -402,6 +447,51 @@ public class Main {
 
                 Type setType = new TypeToken<TreeSet<String>>(){}.getType();
                 locationsMasterList = gson.fromJson(builder.toString().trim(), setType);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+                System.exit(1);
+            }
+        }
+
+        // Gather up all of the potential organizations in the entire dataset
+        File organizationsFile = new File(ORGANIZATIONS_FILEPATH);
+        if (!organizationsFile.exists()) {
+            organizationsMasterList = new TreeSet<String>();
+
+            ArrayList<Document> allDocs = getAllDocsStartsWith("DEV");
+            allDocs.addAll(getAllDocsStartsWith("TST"));
+
+            System.out.println("Gathering all organizations from all docs...");
+            for (Document d : allDocs)
+                organizationsMasterList.addAll(getTagValues(d, "organization"));
+
+            Gson gson = new Gson();
+
+            try {
+                System.out.println("Creating organizations file...");
+                PrintWriter writer = new PrintWriter(ORGANIZATIONS_FILEPATH, "UTF-8");
+                writer.print(gson.toJson(organizationsMasterList));
+                writer.flush();
+                writer.close();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+                System.exit(1);
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+                System.exit(1);
+            }
+        } else {
+            Gson gson = new Gson();
+
+            try {
+                StringBuilder builder = new StringBuilder();
+                Scanner s = new Scanner(organizationsFile);
+                while (s.hasNextLine())
+                    builder.append(s.nextLine());
+                s.close();
+
+                Type setType = new TypeToken<TreeSet<String>>(){}.getType();
+                organizationsMasterList = gson.fromJson(builder.toString().trim(), setType);
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
                 System.exit(1);
@@ -437,7 +527,14 @@ public class Main {
         }
     }
 
-    private static List<String> getLocationsFrom(Document document) {
+    /**
+     * Uses NER to grab whatever type of tag desired and returns that collection
+     *
+     * @param document - The document to extract tags from
+     * @param tagType - What tag to grab
+     * @return List of String
+     */
+    private static List<String> getTagValues(Document document, String tagType) {
         List<String> locs = new LinkedList<String>();
         edu.stanford.nlp.simple.Document doc = new edu.stanford.nlp.simple.Document(document.getFullText());
 
@@ -449,7 +546,7 @@ public class Main {
             for (int i = 0; i < nerTags.size(); i++) {
                 String tag = nerTags.get(i);
 
-                if (tag.equalsIgnoreCase("location")) {
+                if (tag.equalsIgnoreCase(tagType)) {
                     foundLocation = true;
                     locationsBuilder.append(s.word(i));
                     locationsBuilder.append(" ");
