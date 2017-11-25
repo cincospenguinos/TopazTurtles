@@ -16,9 +16,6 @@ if [ $? -eq 0 ]; then
     echo 'Successful.'
     rm build.log
 
-    echo 'Generating classifiers...'
-    java -jar $trg/$jar_file TRAIN
-
     echo 'Extracting info on events...'
     java -jar $trg/$jar_file $1 > $1.templates
 

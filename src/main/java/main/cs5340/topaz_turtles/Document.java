@@ -238,7 +238,7 @@ public class Document {
             case INCIDENT:
                 if (!((slotValue instanceof IncidentType) || (slotValue instanceof String)))
                     throw new RuntimeException("INCIDENT slot requires an IncidentType or String!");
-
+            default:
                 guesses.put(slot, slotValue.toString());
         }
     }

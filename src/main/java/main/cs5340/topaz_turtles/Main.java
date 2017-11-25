@@ -13,9 +13,6 @@ import java.util.regex.Pattern;
 
 /**
  * The main class of the application.
- *
- * TODO: Extract all locationsMasterList and keep them in a TreeSet
- * TODO: Figure out named entity recognition with the Stanford library and extract those and include them as a feature
  */
 public class Main {
 
@@ -28,23 +25,15 @@ public class Main {
 
     private static TreeMap<IncidentType, DataMuseWord[]> relatedWordsToEachIncident;
     private static TreeSet<String> locationsMasterList;
-    private static TreeSet<String> individuals;
     private static TreeSet<String> organizationsMasterList;
 
     public static void main(String[] args) {
-        if (args.length == 0 || args.length > 1) {
+        if (args.length != 1) {
             System.out.println("Usage: infoextract <textfile>");
             System.exit(0);
         }
 
-        if (args[0].equalsIgnoreCase("TRAIN")) {
-            setup(true);
-            System.out.println("Classifiers trained.");
-            System.exit(1);
-        } else
-            setup(false);
-
-//        StanfordCoreNLP pipeline = CoreNLP.getPipeline();
+        setup();
 
         ArrayList<Document> documents = extractDocsFromFile(args[0]);
         for(Document d : documents) {
@@ -164,6 +153,8 @@ public class Main {
 
                         if (perpOrg != null)
                             d.setSlot(Slot.PERP_ORG, perpOrg);
+                        else
+                            d.setSlot(Slot.PERP_ORG, "");
                     } catch (IOException e) {
                         e.printStackTrace();
                     } catch (InterruptedException e) {
@@ -344,7 +335,7 @@ public class Main {
      * Function that runs first thing. Use this to generate any files you will need, grab any data
      * you may need to have put together, etc.
      */
-    private static void setup(boolean createClassifier) {
+    private static void setup() {
         // Setup local data directory
         File path = new File(LOCAL_DATA_FILEPATH);
 
@@ -408,7 +399,7 @@ public class Main {
             }
         }
 
-        // Gather up all of the locationsMasterList in the entire dataset
+        // Gather up all of the locations in the entire dataset
         File locationsFile = new File(LOCATIONS_FILEPATH);
         if (!locationsFile.exists()) {
             locationsMasterList = new TreeSet<String>();
@@ -417,8 +408,9 @@ public class Main {
             allDocs.addAll(getAllDocsStartsWith("TST"));
 
             System.out.println("Gathering all locations from all docs...");
-            for (Document d : allDocs)
+            for (Document d : allDocs) {
                 locationsMasterList.addAll(getTagValues(d, "location"));
+            }
 
             Gson gson = new Gson();
 
@@ -499,7 +491,7 @@ public class Main {
         }
 
         File incidentModelsFile = new File(LOCAL_DATA_FILEPATH + "DEV-INCIDENT.models"); // If this file exists, we already have trained classifiers
-        if (createClassifier && !incidentModelsFile.exists()) {
+        if (!incidentModelsFile.exists()) {
             System.out.println("Generating classifiers...");
             // Grab all the docs and generate vector files from them
             ArrayList<Document> devDocs = getAllDocsStartsWith("DEV");
@@ -524,6 +516,15 @@ public class Main {
                     }
                 }
             }
+        }
+
+        // Extract gold standards to use for PERP_ORG labels
+        ArrayList<Document> allDocs = getAllDocsStartsWith("DEV");
+        allDocs.addAll(getAllDocsStartsWith("TST"));
+        setGoldStandards(allDocs);
+
+        for (Document d : allDocs) {
+            PerpetratorLabelManager.getInstance().addLabel(Slot.PERP_ORG, d.getGoldStandardValue(Slot.PERP_ORG));
         }
     }
 
