@@ -3,7 +3,9 @@ package main.cs5340.topaz_turtles;
 import java.util.ArrayList;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.Gson;
+import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
+import edu.stanford.nlp.simple.Sentence;
 
 import java.io.*;
 import java.lang.reflect.Type;
@@ -21,6 +23,7 @@ public class Main {
 
     public static final String LOCAL_DATA_FILEPATH = ".topaz_turtles_data/";
     public static final String RELATED_WORDS_FILEPATH = LOCAL_DATA_FILEPATH + "related_words.json";
+    public static final String LOCATIONS_FILEPATH = LOCAL_DATA_FILEPATH + "locations.json";
     public static final String DATASET_FILEPATH = "dataset/";
     public static final String TEXT_FILEPATH = DATASET_FILEPATH + "texts/";
 
@@ -29,25 +32,39 @@ public class Main {
     private static TreeSet<String> individuals;
 
     public static void main(String[] args) {
-//        if (args.length == 0 || args.length > 1) {
-//            System.out.println("Usage: infoextract <textfile>");
-//            System.exit(0);
-//        }
-        CoreNLP.getPipeline();
+        if (args.length == 0 || args.length > 1) {
+            System.out.println("Usage: infoextract <textfile>");
+            System.exit(0);
+        }
 
-//        if (args[0].equalsIgnoreCase("TRAIN")) {
-//            setup(true);
-//            System.out.println("Classifiers trained.");
-//            System.exit(1);
-//        } else
-//            setup(false);
-//
-//
-//        ArrayList<Document> documents = extractDocsFromFile(args[0]);
-//        for(Document d : documents){
-//            fillSlots(d);
-//            System.out.println(d);
+        if (args[0].equalsIgnoreCase("TRAIN")) {
+            setup(true);
+            System.out.println("Classifiers trained.");
+            System.exit(1);
+        } else
+            setup(false);
+
+//        StanfordCoreNLP pipeline = CoreNLP.getPipeline();
+
+        ArrayList<Document> documents = extractDocsFromFile(args[0]);
+//        for(Document d : documents) {
+////            edu.stanford.nlp.simple.Document doc = new edu.stanford.nlp.simple.Document(d.getFullText());
+////
+////            for (Sentence s : doc.sentences()) {
+////                List<String> tags = s.nerTags();
+////
+////                for (int i = 0; i < tags.size(); i++) {
+////                    String tag = tags.get(i);
+////
+////                    if (!tag.equalsIgnoreCase("O")) {
+////                        System.out.println(s.word(i) + "\t" + tag);
+////                    }
+////                }
+////            }
+////            fillSlots(d);
+////            System.out.println(d);
 //        }
+        System.out.println(locations);
     }
 
     /**
@@ -347,6 +364,71 @@ public class Main {
 
                 Type treeType = new TypeToken<TreeMap<IncidentType, DataMuseWord[]>>(){}.getType();
                 relatedWordsToEachIncident = gson.fromJson(builder.toString().trim(), treeType);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+                System.exit(1);
+            }
+        }
+
+        File locationsFile = new File(LOCATIONS_FILEPATH);
+        if (!locationsFile.exists()) {
+            locations = new TreeSet<String>();
+
+            ArrayList<Document> devDocs = getAllDocsStartsWith("DEV");
+
+            System.out.println("Gathering all locations from dev docs...");
+            for (Document d : devDocs) {
+                String text = d.getFullText();
+                edu.stanford.nlp.simple.Document doc = new edu.stanford.nlp.simple.Document(text);
+
+                for (Sentence s : doc.sentences()) {
+                    List<String> nerTags = s.nerTags();
+                    StringBuilder locationsBuilder = new StringBuilder();
+                    boolean foundLocation = false;
+
+                    for (int i = 0; i < nerTags.size(); i++) {
+                        String tag = nerTags.get(i);
+
+                        if (tag.equalsIgnoreCase("location")) {
+                            foundLocation = true;
+                            locationsBuilder.append(s.word(i));
+                            locationsBuilder.append(" ");
+                        } else if (foundLocation){
+                            locations.add(locationsBuilder.toString().trim());
+                            locationsBuilder = new StringBuilder();
+                            foundLocation = false;
+                        }
+                    }
+                }
+            }
+
+            Gson gson = new Gson();
+
+            try {
+                System.out.println("Creating locations file...");
+                PrintWriter writer = new PrintWriter(LOCATIONS_FILEPATH, "UTF-8");
+                writer.print(gson.toJson(locations));
+                writer.flush();
+                writer.close();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+                System.exit(1);
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+                System.exit(1);
+            }
+        } else {
+            Gson gson = new Gson();
+
+            try {
+                StringBuilder builder = new StringBuilder();
+                Scanner s = new Scanner(locationsFile);
+                while (s.hasNextLine())
+                    builder.append(s.nextLine());
+                s.close();
+
+                Type setType = new TypeToken<TreeSet<String>>(){}.getType();
+                locations = gson.fromJson(builder.toString().trim(), setType);
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
                 System.exit(1);

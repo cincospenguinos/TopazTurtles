@@ -1,9 +1,6 @@
 package main.cs5340.topaz_turtles;
 
-import edu.stanford.nlp.pipeline.StanfordCoreNLP;
-
-import java.io.IOException;
-import java.io.InputStream;
+import edu.stanford.nlp.pipeline.*;
 import java.util.Properties;
 
 /**
@@ -21,12 +18,8 @@ public class CoreNLP {
     }
 
     private static void init() {
-//        InputStream input = CoreNLP.class.getClass().getResourceAsStream("/nlp.properties");
         Properties props = new Properties();
-        props.setProperty("annotaters", "ner");
-
-        System.out.println("Instantiate pipeline...");
+        props.setProperty("annotaters", "pos");
         pipeline = new StanfordCoreNLP(props);
-        System.out.println("Done!");
     }
 }
