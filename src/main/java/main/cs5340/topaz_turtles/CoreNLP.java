@@ -16,13 +16,14 @@ public class CoreNLP {
         if (pipeline == null) {
             init();
         }
+
         return pipeline;
     }
 
     private static void init() {
 //        InputStream input = CoreNLP.class.getClass().getResourceAsStream("/nlp.properties");
         Properties props = new Properties();
-        props.setProperty("annotaters", "tokenize, ssplit, pos, lemma, ner, parse");
+        props.setProperty("annotaters", "ner");
 
         System.out.println("Instantiate pipeline...");
         pipeline = new StanfordCoreNLP(props);

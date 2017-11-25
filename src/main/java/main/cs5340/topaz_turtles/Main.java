@@ -3,6 +3,7 @@ package main.cs5340.topaz_turtles;
 import java.util.ArrayList;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.Gson;
+import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 
 import java.io.*;
 import java.lang.reflect.Type;
@@ -28,25 +29,25 @@ public class Main {
     private static TreeSet<String> individuals;
 
     public static void main(String[] args) {
-        if (args.length == 0 || args.length > 1) {
-            System.out.println("Usage: infoextract <textfile>");
-            System.exit(0);
-        }
-//        CoreNLP.getPipeline();
+//        if (args.length == 0 || args.length > 1) {
+//            System.out.println("Usage: infoextract <textfile>");
+//            System.exit(0);
+//        }
+        CoreNLP.getPipeline();
 
-        if (args[0].equalsIgnoreCase("TRAIN")) {
-            setup(true);
-            System.out.println("Classifiers trained.");
-            System.exit(1);
-        } else
-            setup(false);
-
-
-        ArrayList<Document> documents = extractDocsFromFile(args[0]);
-        for(Document d : documents){
-            fillSlots(d);
-            System.out.println(d);
-        }
+//        if (args[0].equalsIgnoreCase("TRAIN")) {
+//            setup(true);
+//            System.out.println("Classifiers trained.");
+//            System.exit(1);
+//        } else
+//            setup(false);
+//
+//
+//        ArrayList<Document> documents = extractDocsFromFile(args[0]);
+//        for(Document d : documents){
+//            fillSlots(d);
+//            System.out.println(d);
+//        }
     }
 
     /**
@@ -65,7 +66,6 @@ public class Main {
 
             while(s.hasNextLine()) {
                 String line = s.nextLine();
-
                 if (!line.trim().equals("")) {
                     builder.append(line);
                     builder.append("\n");
@@ -137,6 +137,7 @@ public class Main {
 
                 case PERP_INDIV:
                 case PERP_ORG:
+                    break;
                     // These are where Quinn will do his work
                 case TARGET:
                     break;
