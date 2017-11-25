@@ -3,8 +3,6 @@ package main.cs5340.topaz_turtles;
 import java.util.ArrayList;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.Gson;
-import edu.stanford.nlp.pipeline.Annotation;
-import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import edu.stanford.nlp.simple.Sentence;
 
 import java.io.*;
@@ -16,19 +14,19 @@ import java.util.regex.Pattern;
 /**
  * The main class of the application.
  *
- * TODO: Extract all locations and keep them in a TreeSet
+ * TODO: Extract all locationsMasterList and keep them in a TreeSet
  * TODO: Figure out named entity recognition with the Stanford library and extract those and include them as a feature
  */
 public class Main {
 
     public static final String LOCAL_DATA_FILEPATH = ".topaz_turtles_data/";
     public static final String RELATED_WORDS_FILEPATH = LOCAL_DATA_FILEPATH + "related_words.json";
-    public static final String LOCATIONS_FILEPATH = LOCAL_DATA_FILEPATH + "locations.json";
+    public static final String LOCATIONS_FILEPATH = LOCAL_DATA_FILEPATH + "locationsMasterList.json";
     public static final String DATASET_FILEPATH = "dataset/";
     public static final String TEXT_FILEPATH = DATASET_FILEPATH + "texts/";
 
     private static TreeMap<IncidentType, DataMuseWord[]> relatedWordsToEachIncident;
-    private static TreeSet<String> locations;
+    private static TreeSet<String> locationsMasterList;
     private static TreeSet<String> individuals;
 
     public static void main(String[] args) {
@@ -47,24 +45,10 @@ public class Main {
 //        StanfordCoreNLP pipeline = CoreNLP.getPipeline();
 
         ArrayList<Document> documents = extractDocsFromFile(args[0]);
-//        for(Document d : documents) {
-////            edu.stanford.nlp.simple.Document doc = new edu.stanford.nlp.simple.Document(d.getFullText());
-////
-////            for (Sentence s : doc.sentences()) {
-////                List<String> tags = s.nerTags();
-////
-////                for (int i = 0; i < tags.size(); i++) {
-////                    String tag = tags.get(i);
-////
-////                    if (!tag.equalsIgnoreCase("O")) {
-////                        System.out.println(s.word(i) + "\t" + tag);
-////                    }
-////                }
-////            }
-////            fillSlots(d);
-////            System.out.println(d);
-//        }
-        System.out.println(locations);
+        for(Document d : documents) {
+            fillSlots(d);
+            System.out.println(d);
+        }
     }
 
     /**
@@ -195,7 +179,15 @@ public class Main {
                             }
                         }
                         break;
-                    case FROM_LOCATION:
+                    case CONTAINS_LOCATION:
+                        Set<String> locs = new TreeSet<String>();
+                        locs.addAll(getLocationsFrom(d));
+
+                        for (String l : locationsMasterList) {
+                            boolean isTrue = locs.contains(l);
+                            id = manager.addFeature(libLinearFeature, l);
+                            libLinearFeatureVector.put(id, isTrue);
+                        }
                         break;
                     case YEAR:
                         if (d.getYearPublished() != -1) {
@@ -370,44 +362,25 @@ public class Main {
             }
         }
 
+        // Gather up all of the locationsMasterList in the entire dataset
         File locationsFile = new File(LOCATIONS_FILEPATH);
         if (!locationsFile.exists()) {
-            locations = new TreeSet<String>();
+            locationsMasterList = new TreeSet<String>();
 
-            ArrayList<Document> devDocs = getAllDocsStartsWith("DEV");
+            ArrayList<Document> allDocs = getAllDocsStartsWith("DEV");
+            allDocs.addAll(getAllDocsStartsWith("TST"));
 
-            System.out.println("Gathering all locations from dev docs...");
-            for (Document d : devDocs) {
-                String text = d.getFullText();
-                edu.stanford.nlp.simple.Document doc = new edu.stanford.nlp.simple.Document(text);
-
-                for (Sentence s : doc.sentences()) {
-                    List<String> nerTags = s.nerTags();
-                    StringBuilder locationsBuilder = new StringBuilder();
-                    boolean foundLocation = false;
-
-                    for (int i = 0; i < nerTags.size(); i++) {
-                        String tag = nerTags.get(i);
-
-                        if (tag.equalsIgnoreCase("location")) {
-                            foundLocation = true;
-                            locationsBuilder.append(s.word(i));
-                            locationsBuilder.append(" ");
-                        } else if (foundLocation){
-                            locations.add(locationsBuilder.toString().trim());
-                            locationsBuilder = new StringBuilder();
-                            foundLocation = false;
-                        }
-                    }
-                }
+            System.out.println("Gathering all locationsMasterList from all docs...");
+            for (Document d : allDocs) {
+                locationsMasterList.addAll(getLocationsFrom(d));
             }
 
             Gson gson = new Gson();
 
             try {
-                System.out.println("Creating locations file...");
+                System.out.println("Creating locationsMasterList file...");
                 PrintWriter writer = new PrintWriter(LOCATIONS_FILEPATH, "UTF-8");
-                writer.print(gson.toJson(locations));
+                writer.print(gson.toJson(locationsMasterList));
                 writer.flush();
                 writer.close();
             } catch (FileNotFoundException e) {
@@ -428,14 +401,16 @@ public class Main {
                 s.close();
 
                 Type setType = new TypeToken<TreeSet<String>>(){}.getType();
-                locations = gson.fromJson(builder.toString().trim(), setType);
+                locationsMasterList = gson.fromJson(builder.toString().trim(), setType);
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
                 System.exit(1);
             }
         }
 
-        if (createClassifier) {
+        File incidentModelsFile = new File(LOCAL_DATA_FILEPATH + "DEV-INCIDENT.models"); // If this file exists, we already have trained classifiers
+        if (createClassifier && !incidentModelsFile.exists()) {
+            System.out.println("Generating classifiers...");
             // Grab all the docs and generate vector files from them
             ArrayList<Document> devDocs = getAllDocsStartsWith("DEV");
             ArrayList<Document> testDocs = getAllDocsStartsWith("TST");
@@ -462,7 +437,30 @@ public class Main {
         }
     }
 
-    public static TreeMap<IncidentType, DataMuseWord[]> getRelatedWordsToEachIncident() {
-        return relatedWordsToEachIncident;
+    private static List<String> getLocationsFrom(Document document) {
+        List<String> locs = new LinkedList<String>();
+        edu.stanford.nlp.simple.Document doc = new edu.stanford.nlp.simple.Document(document.getFullText());
+
+        for (Sentence s : doc.sentences()) {
+            List<String> nerTags = s.nerTags();
+            StringBuilder locationsBuilder = new StringBuilder();
+            boolean foundLocation = false;
+
+            for (int i = 0; i < nerTags.size(); i++) {
+                String tag = nerTags.get(i);
+
+                if (tag.equalsIgnoreCase("location")) {
+                    foundLocation = true;
+                    locationsBuilder.append(s.word(i));
+                    locationsBuilder.append(" ");
+                } else if (foundLocation){
+                    locs.add(locationsBuilder.toString().trim());
+                    locationsBuilder = new StringBuilder();
+                    foundLocation = false;
+                }
+            }
+        }
+
+        return locs;
     }
 }

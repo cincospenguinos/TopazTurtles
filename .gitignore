@@ -4,3 +4,4 @@ target/
 train
 predict
 *.vector
+*.templates
