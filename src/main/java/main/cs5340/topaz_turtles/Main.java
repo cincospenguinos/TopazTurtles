@@ -40,8 +40,15 @@ public class Main {
             System.exit(0);
         }
 //        CoreNLP.getPipeline();
+        try {
+            Tagger.tag();
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
 
         if (args[0].equalsIgnoreCase("TRAIN")) {
+            weapon_words = new TreeSet<String>();
             setup(true);
             System.out.println("Classifiers trained.");
             System.exit(1);
@@ -342,13 +349,9 @@ public class Main {
         if (!relatedWordsFile.exists()) {
             relatedWordsToEachIncident = new TreeMap<IncidentType, DataMuseWord[]>();
 
-            // TODO: right here make a new string[] with the words I specified below.
-            // TODO: also, make a limit for the score so all of the words don't go in.
-            String[] weapons = {"rifle", "gun", "sidearm", "glock", "knife", "bomb", "molotov", "grenade", "knucks", "bludgeon",
-                    "car", "stab", "shoot"};
-            for (String t : weapons) {
-                DataMuseWord[] words = DataMuse.getWordsRelatedTo(t.toLowerCase());
-                weapon_words.add(t);
+            for (IncidentType t : IncidentType.values()) {
+                DataMuseWord[] words = DataMuse.getWordsRelatedTo(t.toString().toLowerCase());
+                relatedWordsToEachIncident.put(t, words);
             }
 
             Gson gson = new Gson();
@@ -416,52 +419,16 @@ public class Main {
         return relatedWordsToEachIncident;
     }
 
-    public static void getWeaponWords(String file_contents){
+    /**
+     * This method takes in a document, gets all POS tags using Standford NLP,
+     * and then adds weapon words to the weapons file.
+     * @param document
+     */
+    public static void get_weapons(Document document){
+        // TODO: make the POS tagger work.  create a file manually full of weapon words.
+        // TODO: also make some case frames for the documents
         String[] weapons = {"rifle", "gun", "sidearm", "glock", "knife", "bomb", "molotov", "grenade", "knucks", "bludgeon",
                 "car", "stab", "shoot"};
-        try {
-            for(String s : weapons){
-                String url = "http://api.datamuse.com/words?ml=" + s;
-                URL obj = new URL(url);
-                HttpURLConnection con = (HttpURLConnection) obj.openConnection();
-                con.setRequestMethod("GET");
-                con.setDoOutput(true);
-                con.setRequestProperty("Content-Type", "application/json");
-                con.setRequestProperty("Accept", "application/json");
-                System.out.println(con.getResponseCode());
-                BufferedReader br = new BufferedReader(new InputStreamReader((con.getInputStream())));
-                String output;
-                String[] split_output = null;
-                System.out.println("Output from Server .... \n");
-                while ((output = br.readLine()) != null) {
-                    split_output = output.split("}").clone();
-                    //System.out.println(output);
-                }
-                //I was able to split the string up, now I need to place it in a gson object and get each word out.
-                for(int i = 0; i < split_output.length; i++){
-                    split_output[i] += "}";
-                }
-                // this part formats the string into Json for the Gson object
-                for(int j = 0; j < split_output.length; j++) {
-                    StringBuilder builder = new StringBuilder(split_output[j]);
-                    builder.setCharAt(0, ' ');
-                    split_output[j] = builder.toString().trim();
-                }
 
-                // right about here, I can use Gson to get the weapons from the string.
-                System.out.println(split_output.toString());
-
-
-                // if score > 31500, add it to the weapons file, otherwise discard the word
-            }
-
-
-            PrintWriter writer = new PrintWriter("weapons.txt", "UTF-8");
-
-            writer.println("blah");
-        }
-        catch(Exception e){
-            e.printStackTrace();
-        }
     }
 }
