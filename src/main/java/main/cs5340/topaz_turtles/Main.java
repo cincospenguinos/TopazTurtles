@@ -528,6 +528,10 @@ public class Main {
         for (Document d : allDocs) {
             PerpetratorLabelManager.getInstance().addLabel(Slot.PERP_ORG, d.getGoldStandardValue(Slot.PERP_ORG));
         }
+
+        // Instantiate any other variables
+        parseCaseFramesFile("caseFrames.txt");
+        parseCaseFramesFile("other.txt");
     }
 
     /**
@@ -562,5 +566,27 @@ public class Main {
         }
 
         return locs;
+    }
+
+    /**
+     * This method creates all the case frames we need from a file.
+     * The case frames file should be in the local data filepath.
+     * @param filename - the filename containing all of the case frames
+     */
+    public static void parseCaseFramesFile(String filename) {
+        if (caseFrames == null)
+            caseFrames = new ArrayList<CaseFrame>();
+
+        try {
+            Scanner scanner = new Scanner(new File(LOCAL_DATA_FILEPATH + filename));
+            while (scanner.hasNext()) {
+                String[] line = scanner.nextLine().split("\\s+");
+                CaseFrame frame = new CaseFrame(line.clone());
+                caseFrames.add(frame);
+            }
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

@@ -1,0 +1,74 @@
+machine-gun
+machinegun
+machineguns
+machine-guns
+submachine-gun
+submachinegun
+submachineguns
+submachine-guns
+incendiary
+incendiary bomb
+bomb
+bomb blast
+dynamite
+two bombs
+one bomb
+three bombs
+four bombs
+five bombs
+bullet
+bullets
+bombs
+bomb blast
+dynamite and a fuse
+dynamite charge
+dynamite sticks
+explosive devices
+explosive charges
+car
+bus
+automatic rifle
+handgun
+cannon
+sniper
+sniper rifle
+shotgun
+firearm
+sidearm
+glock
+torpedo
+assault rifle
+shiv
+knife
+shank
+screwdriver
+crowbar
+sword
+dagger
+longsword
+meat cleaver
+semiautomatics
+gatling gun
+rifle
+.22 caliber gun
+rocket launcher
+antiaircraft gun
+9mm handgun
+tank
+mortar
+flamethrower
+NP exploded
+explosions NP
+explosions of NP
+hurled NP
+threw NP
+throwing NP
+firing NP
+shooting NP
+received NP
+NP damaged
+NP wreaked havoc
+shot by NP
+to fire NP
+fired NP
+shot NP
