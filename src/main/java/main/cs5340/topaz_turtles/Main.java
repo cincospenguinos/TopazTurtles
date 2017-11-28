@@ -1,10 +1,17 @@
 package main.cs5340.topaz_turtles;
 
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 
+<<<<<<< HEAD
+=======
+import com.google.gson.JsonArray;
+>>>>>>> 181642c6eab74d0ff86abc6a97e2896f2144c4a5
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.Gson;
 
+import javax.json.JsonObject;
 import java.io.*;
 import java.lang.reflect.Type;
 import java.util.*;
@@ -36,6 +43,7 @@ public class Main {
             System.out.println("Usage: infoextract <textfile>");
             System.exit(0);
         }
+<<<<<<< HEAD
         caseFrames = new ArrayList<CaseFrame>();
 
 //        try{
@@ -44,6 +52,15 @@ public class Main {
 //        catch(Exception e){
 //            e.printStackTrace();
 //        }
+=======
+//        CoreNLP.getPipeline();
+        try {
+            Tagger.tag();
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
+>>>>>>> 181642c6eab74d0ff86abc6a97e2896f2144c4a5
 
         if (args[0].equalsIgnoreCase("TRAIN")) {
             weapon_words = new TreeSet<String>();
@@ -53,6 +70,7 @@ public class Main {
         } else
             setup(false);
 
+<<<<<<< HEAD
         parseCaseFramesFile("caseFrames.txt");
         parseCaseFramesFile("other.txt");
         ArrayList<Document> documents = parseFile(args[0]);
@@ -66,12 +84,24 @@ public class Main {
             System.out.println(d.getFullText());
         }
 
+=======
+        ArrayList<Document> documents = parseFile(args[0]);
+>>>>>>> 181642c6eab74d0ff86abc6a97e2896f2144c4a5
 //        for(Document d : documents){
 //            getWeaponWords(d.getFullText());
 //            fillSlots(d);
 //            System.out.println(d);
 //        }
+<<<<<<< HEAD
         System.out.println("done.");
+=======
+
+//        for(Document d : documents){
+//            getWeaponWords(d.getFullText());
+//            fillSlots(d);
+//            System.out.println(d);
+//        }
+>>>>>>> 181642c6eab74d0ff86abc6a97e2896f2144c4a5
     }
 
     /**
@@ -432,6 +462,7 @@ public class Main {
     }
 
     /**
+<<<<<<< HEAD
      * This method creates all the case frames we need from a file.
      * The case frames file should be in the local data filepath.
      * @param filename - the filename containing all of the case frames
@@ -450,4 +481,17 @@ public class Main {
         }
     }
 
+=======
+     * This method takes in a document, gets all POS tags using Standford NLP,
+     * and then adds weapon words to the weapons file.
+     * @param document
+     */
+    public static void get_weapons(Document document){
+        // TODO: make the POS tagger work.  create a file manually full of weapon words.
+        // TODO: also make some case frames for the documents
+        String[] weapons = {"rifle", "gun", "sidearm", "glock", "knife", "bomb", "molotov", "grenade", "knucks", "bludgeon",
+                "car", "stab", "shoot"};
+
+    }
+>>>>>>> 181642c6eab74d0ff86abc6a97e2896f2144c4a5
 }

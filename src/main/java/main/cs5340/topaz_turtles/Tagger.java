@@ -1,5 +1,6 @@
 package main.cs5340.topaz_turtles;
 
+<<<<<<< HEAD
 
 import edu.stanford.nlp.simple.*;
 import edu.stanford.nlp.trees.*;
@@ -69,4 +70,22 @@ public class Tagger {
 //        t.pennPrint();
     }
 
+=======
+import edu.stanford.nlp.tagger.maxent.MaxentTagger;
+
+import java.io.IOException;
+
+public class Tagger {
+
+    public static void tag()throws IOException, ClassNotFoundException{
+        MaxentTagger tagger = new MaxentTagger(
+                "stanford-postagger-2017-06-09/models/english-bidirectional-distsim.tagger");
+
+        String sample = "This is a sample text";
+
+        String tagged = tagger.tagString(sample);
+
+        System.out.println(tagged);
+    }
+>>>>>>> 181642c6eab74d0ff86abc6a97e2896f2144c4a5
 }
