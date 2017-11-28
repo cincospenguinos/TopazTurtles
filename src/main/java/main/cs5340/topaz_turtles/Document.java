@@ -1,6 +1,8 @@
 package main.cs5340.topaz_turtles;
 
 import edu.stanford.nlp.pipeline.Annotation;
+import edu.stanford.nlp.simple.Sentence;
+import edu.stanford.nlp.trees.Tree;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -24,7 +26,7 @@ public class Document {
     private int yearPublished;
     private int monthPublished;
     private int dayOfYearPublished;
-    private ArrayList<String> potentialLocations;
+    private ArrayList<Tree> taggedText;
 
     private TreeMap<Slot, String> guesses; // The guesses we are putting together
     private TreeMap<Slot, String> goldStandard; // The actual answers for the document
@@ -34,6 +36,7 @@ public class Document {
 
         guesses = new TreeMap<Slot, String>();
         goldStandard = new TreeMap<Slot, String>();
+        taggedText = new ArrayList<Tree>();
 
 
         for (Slot s : Slot.values()) {
@@ -43,10 +46,7 @@ public class Document {
 
         guesses.put(Slot.ID, id);
 
-        potentialLocations = new ArrayList<String>();
-
         extractDateInformation();
-//        extractLocations();
     }
 
     public Document(String filepath) {
@@ -75,8 +75,6 @@ public class Document {
         if (matcher.find())
             guesses.put(Slot.ID, matcher.group());
 
-        potentialLocations = new ArrayList<String>();
-
         extractDateInformation();
 //        extractLocations();
     }
@@ -99,27 +97,6 @@ public class Document {
     }
 
     /**
-     * Returns value of the feature requested. It is expected that the user of this method
-     * knows what the return value is supposed to be for that specific feature, and casts it
-     * accordingly.
-     *
-     * @param feature - Feature to look at
-     * @return Object of some sort, or null if none is found.
-     */
-    public Object getFeatureValue(DocumentFeature feature) {
-        Calendar cal;
-
-        switch (feature) {
-            case NUM_YEAR:
-                // TODO: This
-            case NUM_DAY_OF_YEAR:
-                // TODO: This
-            default:
-                return null;
-        }
-    }
-
-    /**
      * Returns string version of this document. This method uses the guesses to generate the string.
      *
      * @return String
@@ -137,9 +114,7 @@ public class Document {
     }
 
     public String getFullText(){ return this.fullText; }
-    public void setFullText(String _text){ this.fullText = _text; }
 
-    //TODO: I don't think this method will ever get used either...
     /**
      * Sets the gold standard for this document from the file path provided.
      *
@@ -179,27 +154,6 @@ public class Document {
     }
 
     /**
-     * Helper method. Grabs the full text from the file found in the path provided. Terminates
-     * if no such file exists.
-     *
-     * @param filepath - path of the file
-     */
-    private void getFullText(String filepath) {
-        try {
-            Scanner scanner = new Scanner(new File(filepath));
-
-            while(scanner.hasNextLine()) {
-                fullText += scanner.nextLine() + "\n";
-            }
-
-            scanner.close();
-        } catch (FileNotFoundException e) {
-            System.err.println("Could not find file \"" + filepath + "\"");
-            System.exit(1);
-        }
-    }
-
-    /**
      * Helper method. Extracts the date information for the document.
      */
     private void extractDateInformation() {
@@ -223,10 +177,203 @@ public class Document {
         dayOfYearPublished = -1;
     }
 
-    private void extractLocations() {
-        Annotation annotation = new Annotation(fullText);
-        CoreNLP.getPipeline().annotate(annotation);
-        System.out.println(annotation);
+    public String extractWeapon(ArrayList<CaseFrame> caseFrames) {
+        // use the caseFrames to find the weapon words in the document text.
+        boolean weapon_set = false;
+        String weapon = "";
+        for (Tree tree : taggedText) {
+            if (weapon_set) {
+                break;
+            }
+            Set<Tree> sub_trees = tree.subTrees();
+            weapon_set = false;
+            for (Tree t : sub_trees) {
+                if (weapon_set) {
+                    break;
+                }
+                String[] arr = t.toString().split("\\s+");
+                StringBuilder builder = new StringBuilder();
+                for (CaseFrame frame : caseFrames) {
+                    if (weapon_set) {
+                        break;
+                    }
+                    String entity = frame.getEntity();
+                    String[] frame_contents = frame.getframe_contents();
+                    int entity_position = -1;
+                    int k = 0;
+                    if (frame_contents.length == 1) {
+                        if (weapon_set) {
+                            break;
+                        }
+                        for (int i = 0; i < arr.length; i++) {
+                            if (arr[i].toUpperCase().contains((entity.toUpperCase()))) {
+                                weapon = arr[i];
+                                weapon_set = true;
+                            }
+                        }
+//                        weapon = lookForWeapon(Arrays.toString(arr), caseFrames);
+//                        if (!weapon.equals("")){
+//                            weapon_set = true;
+//                        }
+                    } else {
+                        if (weapon_set) {
+                            break;
+                        }
+                        for (k = 0; k < frame_contents.length; k++) {
+                            if (frame_contents[k].equals(entity)) {
+                                entity_position = k;
+                            }
+                        }
+
+                        for (int i = 0; i < arr.length; i++) {
+                            if (arr[i].toUpperCase().contains((entity.toUpperCase()))) {
+                                if (entity_position > 0) {
+                                    for (int j = i - 1; j >= 0; j--) {
+                                        if (arr[j].contains((frame_contents[0]))) {
+                                            break;
+                                        }
+                                        if (!Phrase.in(arr[j])) {
+                                            if (arr[j].toUpperCase().contains("THE")) {
+                                                continue;
+                                            }
+                                            if (arr[j].toUpperCase().contains("A")) {
+                                                continue;
+                                            }
+                                            if (arr[j].toUpperCase().contains("IN")) {
+                                                continue;
+                                            }
+                                            if (arr[j].toUpperCase().contains("AN")) {
+                                                continue;
+                                            }
+                                            if (arr[j].toUpperCase().contains("OF")) {
+                                                continue;
+                                            }
+                                            if (arr[j].toUpperCase().contains(",")) {
+                                                continue;
+                                            }
+                                            if (arr[j].toUpperCase().contains(".")) {
+                                                continue;
+                                            }
+                                            if (arr[j].toUpperCase().contains("-")) {
+                                                continue;
+                                            } else {
+                                                builder.append(arr[j] + " ");
+                                            }
+                                        }
+                                    }
+                                    break;
+                                }
+                                // there is something about this that doesn't work, and will require
+                                // more hours to debug
+                                else {
+                                    for (int j = arr.length - 1; j > i + 1; j--) {
+                                        if (j < 0) {
+                                            break;
+                                        }
+                                        if (arr[j].contains((frame_contents[1]))) {
+                                            break;
+                                        }
+                                        if (!Phrase.in(arr[j])) {
+                                            if (arr[j].toUpperCase().contains("THE")) {
+                                                continue;
+                                            }
+                                            if (arr[j].toUpperCase().contains("A")) {
+                                                continue;
+                                            }
+                                            if (arr[j].toUpperCase().contains("IN")) {
+                                                continue;
+                                            }
+                                            if (arr[j].toUpperCase().contains("AN")) {
+                                                continue;
+                                            }
+                                            if (arr[j].toUpperCase().contains("OF")) {
+                                                continue;
+                                            }
+                                            if (arr[j].toUpperCase().contains(",")) {
+                                                continue;
+                                            }
+                                            if (arr[j].toUpperCase().contains(".")) {
+                                                continue;
+                                            }
+                                            if (arr[j].toUpperCase().contains("-")) {
+                                                continue;
+                                            } else {
+                                                builder.append(arr[j] + " ");
+                                            }
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                        if (!builder.toString().toUpperCase().equals("")) {
+                            weapon = builder.toString();
+                            weapon_set = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return weapon;
+    }
+
+    private String findWeapon(String subTree, String[] frame_contents, String pattern) {
+        String weapon = "";
+        String[] arr = subTree.split("\\(+");
+        Pattern r = Pattern.compile(pattern);
+        for (int i = 0; i < arr.length; i++) {
+            Matcher matcher = r.matcher(arr[i]);
+            if (matcher.matches()) {
+                // look left, look right and try to find a word in case frame.
+                if (!(i - 2 < 0)) {
+                    if (!Phrase.equals(arr[i - 1])) {
+
+                    }
+                }
+                StringBuilder builder = new StringBuilder();
+                builder.append(" ");
+                for (String str : frame_contents) {
+                    if (!Phrase.equals(str)) {
+                        builder.append(str + " ");
+                    }
+                }
+                weapon = builder.toString().trim();
+            }
+        }
+        return weapon;
+    }
+
+    /**
+     * This is the dumb way of finding a weapon:  Is it listed in the file?
+     *
+     * @param fullText
+     * @param caseFrames
+     * @return
+     */
+    public String lookForWeapon(String fullText, ArrayList<CaseFrame> caseFrames) {
+        String weapon = "";
+        String[] arr = fullText.split("\\s+");
+        for (String s : arr) {
+            for (CaseFrame frame : caseFrames) {
+                String blah = frame.getEntity();
+                if (s.equalsIgnoreCase(frame.getEntity())) {
+                    weapon = s;
+                }
+            }
+        }
+        return weapon;
+    }
+
+    /**
+     * This method tags a sentence using StanfordNLP parsing
+     *
+     * @param text
+     * @return
+     */
+    public static Tree tag(String text) {
+        Sentence sent = new Sentence(text);
+        return sent.parse();
     }
 
     public String getGoldStandardValue(Slot slot) {
@@ -257,5 +404,13 @@ public class Document {
 
     public CharSequence getId() {
         return guesses.get(Slot.ID);
+    }
+
+    public void addTaggedText(Tree tree) {
+        this.taggedText.add(tree);
+    }
+
+    public ArrayList<Tree> getTaggedText() {
+        return this.taggedText;
     }
 }
