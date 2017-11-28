@@ -215,10 +215,15 @@ public class Document {
         boolean weapon_set = false;
         String weapon = "";
         for (Tree tree : taggedText) {
+            if(weapon_set){
+                break;
+            }
             Set<Tree> sub_trees = tree.subTrees();
             weapon_set = false;
             for (Tree t : sub_trees) {
-//                weapon_set = false;
+                if(weapon_set){
+                    break;
+                }
                 String[] arr = t.toString().split("\\s+");
                 StringBuilder builder = new StringBuilder();
                 for (CaseFrame frame : caseFrames) {
@@ -262,21 +267,15 @@ public class Document {
                                             break;
                                         }
                                         if (!Phrase.in(arr[j])) {
-                                            if (arr[j].toUpperCase().contains("THE")) {
-                                                continue;
-                                            }
-                                            if (arr[j].toUpperCase().contains("A")) {
-                                                continue;
-                                            }
-                                            if (arr[j].toUpperCase().contains("IN")) {
-                                                continue;
-                                            }
-                                            if (arr[j].toUpperCase().contains("AN")) {
-                                                continue;
-                                            }
-                                            if (arr[j].toUpperCase().contains("OF")) {
-                                                continue;
-                                            } else {
+                                            if (arr[j].toUpperCase().contains("THE")) { continue; }
+                                            if (arr[j].toUpperCase().contains("A")) { continue; }
+                                            if (arr[j].toUpperCase().contains("IN")) { continue; }
+                                            if (arr[j].toUpperCase().contains("AN")) { continue; }
+                                            if (arr[j].toUpperCase().contains("OF")) { continue; }
+                                            if(arr[j].toUpperCase().contains(",")) { continue; }
+                                            if(arr[j].toUpperCase().contains(".")) { continue; }
+                                            if(arr[j].toUpperCase().contains("-")) { continue; }
+                                            else {
                                                 builder.append(arr[j] + " ");
                                             }
                                         }
@@ -292,21 +291,15 @@ public class Document {
                                             break;
                                         }
                                         if (!Phrase.in(arr[j])) {
-                                            if (arr[j].toUpperCase().contains("THE")) {
-                                                continue;
-                                            }
-                                            if (arr[j].toUpperCase().contains("A")) {
-                                                continue;
-                                            }
-                                            if (arr[j].toUpperCase().contains("IN")) {
-                                                continue;
-                                            }
-                                            if (arr[j].toUpperCase().contains("AN")) {
-                                                continue;
-                                            }
-                                            if (arr[j].toUpperCase().contains("OF")) {
-                                                continue;
-                                            } else {
+                                            if (arr[j].toUpperCase().contains("THE")) { continue; }
+                                            if (arr[j].toUpperCase().contains("A")) { continue; }
+                                            if (arr[j].toUpperCase().contains("IN")) { continue; }
+                                            if (arr[j].toUpperCase().contains("AN")) { continue; }
+                                            if (arr[j].toUpperCase().contains("OF")) { continue; }
+                                            if(arr[j].toUpperCase().contains(",")) { continue; }
+                                            if(arr[j].toUpperCase().contains(".")) { continue; }
+                                            if(arr[j].toUpperCase().contains("-")) { continue; }
+                                            else {
                                                 builder.append(arr[j] + " ");
                                             }
                                         }
