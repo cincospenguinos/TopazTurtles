@@ -39,7 +39,7 @@ public class Main {
             System.exit(0);
         }
 
-        caseFrames = new ArrayList<CaseFrame>();
+//        caseFrames = new ArrayList<CaseFrame>();
 
 //        try{
 //            Tagger.tag("The bomb exploded and killed senators");
@@ -59,9 +59,7 @@ public class Main {
         } else
             setup(false);
 
-
-        parseCaseFramesFile("caseFrames.txt");
-        parseCaseFramesFile("other.txt");
+//        parseCaseFramesFile("caseFrames.txt");
         ArrayList<Document> documents = parseFile(args[0]);
         for (Document d : documents) {
             System.out.println(d.getId());
@@ -347,6 +345,9 @@ public class Main {
      */
     private static void setup(boolean createClassifier) {
         // Setup local data directory
+        caseFrames = new ArrayList<CaseFrame>();
+        parseCaseFramesFile("caseFrames.txt");
+
         File path = new File(LOCAL_DATA_FILEPATH);
 
         if (!path.exists()) {
