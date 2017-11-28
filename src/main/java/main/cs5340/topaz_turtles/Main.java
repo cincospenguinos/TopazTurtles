@@ -1,6 +1,9 @@
 package main.cs5340.topaz_turtles;
 
 import java.util.ArrayList;
+
+
+
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.Gson;
 import edu.stanford.nlp.simple.Sentence;
@@ -10,6 +13,7 @@ import java.lang.reflect.Type;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 
 /**
  * The main class of the application.
@@ -26,6 +30,7 @@ public class Main {
     private static TreeMap<IncidentType, DataMuseWord[]> relatedWordsToEachIncident;
     private static TreeSet<String> locationsMasterList;
     private static TreeSet<String> organizationsMasterList;
+    private static ArrayList<CaseFrame> caseFrames;
 
     public static void main(String[] args) {
         if (args.length != 1) {
@@ -33,26 +38,53 @@ public class Main {
             System.exit(0);
         }
 
+        caseFrames = new ArrayList<CaseFrame>();
+
+//        try{
+//            Tagger.tag("The bomb exploded and killed senators");
+//        }
+//        catch(Exception e){
+//            e.printStackTrace();
+//        }
+
+//        CoreNLP.getPipeline();
+
         setup();
+
+        parseCaseFramesFile("caseFrames.txt");
+        parseCaseFramesFile("other.txt");
 
         ArrayList<Document> documents = extractDocsFromFile(args[0]);
         for(Document d : documents) {
             fillSlots(d);
             System.out.println(d);
+
+        ArrayList<Document> documents = parseFile(args[0]);
+        for (Document d : documents) {
+            // TODO: What the hell, Quinn.
+            System.out.println(d.getId());
+//            d.setSlot(Slot.WEAPON, d.extractWeapon(caseFrames));
+            String weap = d.lookForWeapon(d.getFullText(), caseFrames);  // This may be the better option here...
+            String w = d.extractWeapon(caseFrames);
+            d.setSlot(Slot.WEAPON, weap);
+            System.out.println(d.getTaggedText());
+            System.out.println(d.getFullText());
         }
     }
 
     /**
-     * Extracts all documents from a document.
-     *
-     * @return all documents included in the file
+     * This method parses a file, and is probably only going to be used for testing.
      */
-    private static ArrayList<Document> extractDocsFromFile (String filename) {
-        ArrayList<Document> documents = new ArrayList<Document>();
-        String docIdRegexString = "(DEV|TST[\\d]*)-MUC\\d+-[\\d]+";
-        Pattern docIdPattern = Pattern.compile(docIdRegexString);
-        StringBuilder builder = new StringBuilder();
-
+    public static ArrayList<Document> parseFile(String filename) {
+        ArrayList<Document> all_docs = new ArrayList<Document>();
+        String file_contents = "";
+        String dev = "DEV-MUC3-[\\d]*";
+        String tst1 = "TST1-MUC3-[\\d]*";
+        String tst2 = "TST2-MUC3-[\\d]*";
+        Pattern dev_pattern = Pattern.compile(dev);
+        Pattern tst1_pattern = Pattern.compile(tst1);
+        Pattern tst2_pattern = Pattern.compile(tst2);
+        Document to_add = new Document("", "");
         try {
             Scanner s = new Scanner(new File(filename));
 
@@ -63,28 +95,13 @@ public class Main {
                     builder.append("\n");
                 }
             }
-
-            s.close();
+            to_add.setFullText(file_contents);
+            all_docs.add(to_add);
+            scanner.close();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
-
-        String fullTextOfFile = builder.toString();
-
-        String[] docs = fullTextOfFile.split(docIdRegexString);
-        ArrayList<String> stringIds = new ArrayList<String>();
-
-        Matcher idMatcher = docIdPattern.matcher(fullTextOfFile);
-        while(idMatcher.find()) {
-            stringIds.add(idMatcher.group());
-        }
-
-        for (int i = 0; i < stringIds.size(); i++) {
-            Document d = new Document(stringIds.get(i), docs[i + 1]);
-            documents.add(d);
-        }
-
-        return documents;
+        return all_docs;
     }
 
     /**
@@ -99,7 +116,7 @@ public class Main {
             String predictionFileName = LOCAL_DATA_FILEPATH + d.getId() + ".prediction";
             String modelFileName = LOCAL_DATA_FILEPATH + "DEV-" + slot.toString().replace(" ", "_") + ".models";
 
-            switch(slot) {
+            switch (slot) {
                 case INCIDENT:
                     aSingleDoc = new ArrayList<Document>();
                     aSingleDoc.add(d);
@@ -107,7 +124,7 @@ public class Main {
                     generateVectorFile(aSingleDoc, vectorFileName, slot);
                     try {
                         String exec = "./predict " + vectorFileName + " " + modelFileName + " " + predictionFileName;
-                        Process p = Runtime.getRuntime().exec(exec);
+                        Process p = Runtime.getRuntime().exec(exec); //TODO: it breaks here for i dont know why...
                         int exitCode = p.waitFor();
 
                         if (exitCode != 0) {
@@ -167,6 +184,8 @@ public class Main {
                 case VICTIM:
                     break;
                 case WEAPON:
+//                    d.setSlot(Slot.WEAPON, d.extractWeapon(caseFrames));  //This isn't working properly for some reason...
+                    d.setSlot(Slot.WEAPON, d.lookForWeapon(d.getFullText(), caseFrames));
                     break;
             }
         }
@@ -176,9 +195,9 @@ public class Main {
      * Generates a single vector file using all of the docs provided, with the given filename,
      * for the slot provided.
      *
-     * @param docs - Documents to generate vector file from
+     * @param docs     - Documents to generate vector file from
      * @param filename - name of vector file
-     * @param slot - What slot to fill
+     * @param slot     - What slot to fill
      */
     private static void generateVectorFile(ArrayList<Document> docs, String filename, Slot slot) {
         StringBuilder vectorFileBuilder = new StringBuilder();
@@ -192,7 +211,7 @@ public class Main {
             // Grab the proper IDs and their values for each LibLinearFeature
             int id = -1;
             for (LibLinearFeature libLinearFeature : LibLinearFeature.values()) {
-                switch(libLinearFeature) {
+                switch (libLinearFeature) {
                     case CONTAINS_WORD:
                         for (DataMuseWord[] array : relatedWordsToEachIncident.values()) {
                             for (DataMuseWord w : array) {
@@ -244,7 +263,7 @@ public class Main {
             }
 
             // Now append the label we're trying to discover to the string we're building
-            switch(slot) {
+            switch (slot) {
                 case INCIDENT:
                     IncidentType incident = IncidentType.fromString(d.getGoldStandardValue(Slot.INCIDENT));
 
@@ -318,6 +337,7 @@ public class Main {
 
     /**
      * Gets the document found at the file path provided.
+     *
      * @param filePath
      * @return
      */
@@ -391,7 +411,8 @@ public class Main {
                     builder.append(s.nextLine());
                 s.close();
 
-                Type treeType = new TypeToken<TreeMap<IncidentType, DataMuseWord[]>>(){}.getType();
+                Type treeType = new TypeToken<TreeMap<IncidentType, DataMuseWord[]>>() {
+                }.getType();
                 relatedWordsToEachIncident = gson.fromJson(builder.toString().trim(), treeType);
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
@@ -561,4 +582,25 @@ public class Main {
 
         return locs;
     }
+
+    /**
+     * This method creates all the case frames we need from a file.
+     * The case frames file should be in the local data filepath.
+     * @param filename - the filename containing all of the case frames
+     */
+    public static void parseCaseFramesFile(String filename) {
+        try {
+            Scanner scanner = new Scanner(new File(LOCAL_DATA_FILEPATH + filename));
+            while (scanner.hasNext()) {
+                String[] line = scanner.nextLine().split("\\s+");
+                CaseFrame frame = new CaseFrame(line.clone());
+                caseFrames.add(frame);
+            }
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
 }
