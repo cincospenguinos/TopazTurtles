@@ -167,7 +167,8 @@ public class Main {
                 case TARGET:
                     break;
                 case VICTIM:
-                    // TODO: Put Quinn's shitty code here
+                    String weap = d.lookForWeapon(d.getFullText(), caseFrames);
+                    d.setSlot(Slot.WEAPON, weap);
                     break;
                 case WEAPON:
                     break;
@@ -535,7 +536,7 @@ public class Main {
             caseFrames = new ArrayList<CaseFrame>();
 
         try {
-            Scanner scanner = new Scanner(new File(LOCAL_DATA_FILEPATH + "caseFrames.txt"));
+            Scanner scanner = new Scanner(new File("caseFrames.txt"));
             while (scanner.hasNext()) {
                 String[] line = scanner.nextLine().split("\\s+");
                 CaseFrame frame = new CaseFrame(line.clone());

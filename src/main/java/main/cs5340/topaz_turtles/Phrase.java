@@ -8,7 +8,8 @@ public enum Phrase {
     public static boolean equals(String s) {
         for (Phrase p : values())
             if (p.toString().equalsIgnoreCase(s))
-                return true;
+                if(!p.toString().equalsIgnoreCase("to"))
+                    return true;
         return false;
     }
 
