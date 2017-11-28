@@ -31,7 +31,7 @@ public class Main {
 
     public static void main(String[] args) {
         if (args.length != 1) {
-            System.out.println("Usage: infoextract <textfile>");
+            System.err.println("Usage: infoextract <textfile>");
             System.exit(0);
         }
 
@@ -344,7 +344,7 @@ public class Main {
         File path = new File(LOCAL_DATA_FILEPATH);
 
         if (!path.exists()) {
-            System.out.println("Creating local data directory...");
+            System.err.println("Creating local data directory...");
             boolean flag = false;
             try {
                 flag = path.mkdir();
@@ -373,7 +373,7 @@ public class Main {
             String relatedWordsJson = gson.toJson(relatedWordsToEachIncident);
 
             try {
-                System.out.println("Creating related words file...");
+                System.err.println("Creating related words file...");
                 PrintWriter writer = new PrintWriter(RELATED_WORDS_FILEPATH, "UTF-8");
                 writer.print(relatedWordsJson);
                 writer.flush();
@@ -411,7 +411,7 @@ public class Main {
             ArrayList<Document> allDocs = getAllDocsStartsWith("DEV");
             allDocs.addAll(getAllDocsStartsWith("TST"));
 
-            System.out.println("Gathering all locations from all docs...");
+            System.err.println("Gathering all locations from all docs...");
             for (Document d : allDocs) {
                 locationsMasterList.addAll(getTagValues(d, "location"));
             }
@@ -419,7 +419,7 @@ public class Main {
             Gson gson = new Gson();
 
             try {
-                System.out.println("Creating locationsMasterList file...");
+                System.err.println("Creating locationsMasterList file...");
                 PrintWriter writer = new PrintWriter(LOCATIONS_FILEPATH, "UTF-8");
                 writer.print(gson.toJson(locationsMasterList));
                 writer.flush();
@@ -457,14 +457,14 @@ public class Main {
             ArrayList<Document> allDocs = getAllDocsStartsWith("DEV");
             allDocs.addAll(getAllDocsStartsWith("TST"));
 
-            System.out.println("Gathering all organizations from all docs...");
+            System.err.println("Gathering all organizations from all docs...");
             for (Document d : allDocs)
                 organizationsMasterList.addAll(getTagValues(d, "organization"));
 
             Gson gson = new Gson();
 
             try {
-                System.out.println("Creating organizations file...");
+                System.err.println("Creating organizations file...");
                 PrintWriter writer = new PrintWriter(ORGANIZATIONS_FILEPATH, "UTF-8");
                 writer.print(gson.toJson(organizationsMasterList));
                 writer.flush();
@@ -496,7 +496,7 @@ public class Main {
 
         File incidentModelsFile = new File(LOCAL_DATA_FILEPATH + "DEV-INCIDENT.models"); // If this file exists, we already have trained classifiers
         if (!incidentModelsFile.exists()) {
-            System.out.println("Generating classifiers...");
+            System.err.println("Generating classifiers...");
             // Grab all the docs and generate vector files from them
             ArrayList<Document> devDocs = getAllDocsStartsWith("DEV");
             ArrayList<Document> testDocs = getAllDocsStartsWith("TST");

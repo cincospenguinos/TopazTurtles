@@ -106,6 +106,8 @@ public class Document {
         for (Map.Entry e : guesses.entrySet()) {
             if (e.getValue().equals(""))
                 res += e.getKey() + ": -" + "\n";
+            else if (e.getKey() == Slot.PERP_ORG)
+                res += e.getKey() + ": " + ((String) e.getValue()).split("/")[0] + "\n";
             else
                 res += e.getKey() + ": " + e.getValue() + "\n";
         }
