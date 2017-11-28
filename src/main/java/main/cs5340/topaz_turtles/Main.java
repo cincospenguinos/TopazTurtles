@@ -26,6 +26,8 @@ public class Main {
     private static TreeMap<IncidentType, DataMuseWord[]> relatedWordsToEachIncident;
     private static TreeSet<String> locationsMasterList;
     private static TreeSet<String> organizationsMasterList;
+    private static ArrayList<CaseFrame> caseFrames;
+
 
     public static void main(String[] args) {
         if (args.length != 1) {
