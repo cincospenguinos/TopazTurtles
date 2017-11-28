@@ -1,6 +1,7 @@
 package main.cs5340.topaz_turtles;
 
 import java.util.ArrayList;
+
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.Gson;
 
@@ -10,9 +11,10 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+
 /**
  * The main class of the application.
- *
+ * <p>
  * TODO: Extract all locations and keep them in a TreeSet
  * TODO: Figure out named entity recognition with the Stanford library and extract those and include them as a feature
  */
@@ -24,87 +26,58 @@ public class Main {
     public static final String TEXT_FILEPATH = DATASET_FILEPATH + "texts/";
 
     private static TreeMap<IncidentType, DataMuseWord[]> relatedWordsToEachIncident;
+    private static TreeSet<String> weapon_words;
     private static TreeSet<String> locations;
     private static TreeSet<String> individuals;
+    private static ArrayList<CaseFrame> caseFrames;
 
     public static void main(String[] args) {
         if (args.length == 0 || args.length > 1) {
             System.out.println("Usage: infoextract <textfile>");
             System.exit(0);
         }
-//        CoreNLP.getPipeline();
+        caseFrames = new ArrayList<CaseFrame>();
+
+//        try{
+//            Tagger.tag("The bomb exploded and killed senators");
+//        }
+//        catch(Exception e){
+//            e.printStackTrace();
+//        }
 
         if (args[0].equalsIgnoreCase("TRAIN")) {
+            weapon_words = new TreeSet<String>();
             setup(true);
             System.out.println("Classifiers trained.");
             System.exit(1);
         } else
             setup(false);
 
+        parseCaseFramesFile("caseFrames.txt");
+        parseCaseFramesFile("other.txt");
+        ArrayList<Document> documents = parseFile(args[0]);
+        for (Document d : documents) {
+            System.out.println(d.getId());
+//            d.setSlot(Slot.WEAPON, d.extractWeapon(caseFrames));
+            String weap = d.lookForWeapon(d.getFullText(), caseFrames);  // This may be the better option here...
+            String w = d.extractWeapon(caseFrames);
+            d.setSlot(Slot.WEAPON, weap);
+            System.out.println(d.getTaggedText());
+            System.out.println(d.getFullText());
+        }
 
-        ArrayList<Document> documents = extractDocsFromFile(args[0]);
-//        ArrayList<Document> documents = parseFile(args[0]);
 //        for(Document d : documents){
-//            System.out.println(d.getFullText());
-//            System.out.println(d.getId());
+//            getWeaponWords(d.getFullText());
+//            fillSlots(d);
+//            System.out.println(d);
 //        }
-
-        for(Document d : documents){
-            fillSlots(d);
-            System.out.println(d);
-        }
-    }
-
-    /**
-     * Extracts all documents from a document.
-     *
-     * @return all documents included in the file
-     */
-    private static ArrayList<Document> extractDocsFromFile (String filename) {
-        ArrayList<Document> documents = new ArrayList<Document>();
-        String docIdRegexString = "(DEV|TST[\\d]*)-MUC\\d+-[\\d]+";
-        Pattern docIdPattern = Pattern.compile(docIdRegexString);
-        StringBuilder builder = new StringBuilder();
-
-        try {
-            Scanner s = new Scanner(new File(filename));
-
-            while(s.hasNextLine()) {
-                String line = s.nextLine();
-
-                if (!line.trim().equals("")) {
-                    builder.append(line);
-                    builder.append("\n");
-                }
-            }
-
-            s.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-
-        String fullTextOfFile = builder.toString();
-
-        String[] docs = fullTextOfFile.split(docIdRegexString);
-        ArrayList<String> stringIds = new ArrayList<String>();
-
-        Matcher idMatcher = docIdPattern.matcher(fullTextOfFile);
-        while(idMatcher.find()) {
-            stringIds.add(idMatcher.group());
-        }
-
-        for (int i = 0; i < stringIds.size(); i++) {
-            Document d = new Document(stringIds.get(i), docs[i + 1]);
-            documents.add(d);
-        }
-
-        return documents;
+        System.out.println("done.");
     }
 
     /**
      * This method parses a file, and is probably only going to be used for testing.
      */
-    public static ArrayList<Document> parseFile(String filename){
+    public static ArrayList<Document> parseFile(String filename) {
         ArrayList<Document> all_docs = new ArrayList<Document>();
         String file_contents = "";
         String dev = "DEV-MUC3-[\\d]*";
@@ -116,40 +89,41 @@ public class Main {
         Document to_add = new Document("", "");
         try {
             Scanner scanner = new Scanner(new File(filename));
-            while(scanner.hasNext()){
+            while (scanner.hasNext()) {
                 String[] line = scanner.nextLine().split("\\s+");
+                if (line[0].equals("") && line.length == 1) {
+                } else {
+                    to_add.addTaggedText(Document.tag(Arrays.toString(line)));
+                }
                 for (String s : line) {
                     Matcher dev_matcher = dev_pattern.matcher(s);
                     Matcher tst1_matcher = tst1_pattern.matcher(s);
                     Matcher tst2_matcher = tst2_pattern.matcher(s);
-                    if(dev_matcher.matches()){
+                    if (dev_matcher.matches()) {
                         to_add.setFullText(file_contents);
-                        if(file_contents != null){
+                        if (file_contents != null) {
                             all_docs.add(to_add);
                         }
                         to_add = new Document(s, file_contents);
                         file_contents = "";
                         break;
-                    }
-                    else if(tst1_matcher.matches()){
+                    } else if (tst1_matcher.matches()) {
                         to_add.setFullText(file_contents);
-                        if(!file_contents.equals("")){
+                        if (!file_contents.equals("")) {
                             all_docs.add(to_add);
                         }
                         to_add = new Document(s, file_contents);
                         file_contents = "";
                         break;
-                    }
-                    else if(tst2_matcher.matches()){
+                    } else if (tst2_matcher.matches()) {
                         to_add.setFullText(file_contents);
-                        if(file_contents != null){
+                        if (file_contents != null) {
                             all_docs.add(to_add);
                         }
                         to_add = new Document(s, file_contents);
                         file_contents = "";
                         break;
-                    }
-                    else{
+                    } else {
                         file_contents += s + " ";
                     }
                 }
@@ -157,8 +131,7 @@ public class Main {
             to_add.setFullText(file_contents);
             all_docs.add(to_add);
             scanner.close();
-        }
-        catch (FileNotFoundException e){
+        } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
         return all_docs;
@@ -171,7 +144,7 @@ public class Main {
      */
     private static void fillSlots(Document d) {
         for (Slot slot : Slot.values()) {
-            switch(slot) {
+            switch (slot) {
                 case INCIDENT:
                     ArrayList<Document> aSingleDoc = new ArrayList<Document>();
                     aSingleDoc.add(d);
@@ -205,13 +178,17 @@ public class Main {
                     break;
 
                 case PERP_INDIV:
+                    break;
                 case PERP_ORG:
+                    break;
                     // These are where Quinn will do his work
                 case TARGET:
                     break;
                 case VICTIM:
                     break;
                 case WEAPON:
+//                    d.setSlot(Slot.WEAPON, d.extractWeapon(caseFrames));
+                    d.setSlot(Slot.WEAPON, d.lookForWeapon(d.getFullText(), caseFrames));
                     break;
             }
         }
@@ -221,9 +198,9 @@ public class Main {
      * Generates a single vector file using all of the docs provided, with the given filename,
      * for the slot provided.
      *
-     * @param docs - Documents to generate vector file from
+     * @param docs     - Documents to generate vector file from
      * @param filename - name of vector file
-     * @param slot - What slot to fill
+     * @param slot     - What slot to fill
      */
     private static void generateVectorFile(ArrayList<Document> docs, String filename, Slot slot) {
         StringBuilder vectorFileBuilder = new StringBuilder();
@@ -236,7 +213,7 @@ public class Main {
             // Grab the proper IDs and their values for each LibLinearFeature
             int id = -1;
             for (LibLinearFeature libLinearFeature : LibLinearFeature.values()) {
-                switch(libLinearFeature) {
+                switch (libLinearFeature) {
                     case CONTAINS_WORD:
                         for (DataMuseWord[] array : relatedWordsToEachIncident.values()) {
                             for (DataMuseWord w : array) {
@@ -270,7 +247,7 @@ public class Main {
             }
 
             // Now append the label we're trying to discover to the string we're building
-            switch(slot) {
+            switch (slot) {
                 case INCIDENT:
                     IncidentType incident = IncidentType.fromString(d.getGoldStandardValue(Slot.INCIDENT));
 
@@ -340,6 +317,7 @@ public class Main {
 
     /**
      * Gets the document found at the file path provided.
+     *
      * @param filePath
      * @return
      */
@@ -413,7 +391,8 @@ public class Main {
                     builder.append(s.nextLine());
                 s.close();
 
-                Type treeType = new TypeToken<TreeMap<IncidentType, DataMuseWord[]>>(){}.getType();
+                Type treeType = new TypeToken<TreeMap<IncidentType, DataMuseWord[]>>() {
+                }.getType();
                 relatedWordsToEachIncident = gson.fromJson(builder.toString().trim(), treeType);
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
@@ -451,4 +430,24 @@ public class Main {
     public static TreeMap<IncidentType, DataMuseWord[]> getRelatedWordsToEachIncident() {
         return relatedWordsToEachIncident;
     }
+
+    /**
+     * This method creates all the case frames we need from a file.
+     * The case frames file should be in the local data filepath.
+     * @param filename - the filename containing all of the case frames
+     */
+    public static void parseCaseFramesFile(String filename) {
+        try {
+            Scanner scanner = new Scanner(new File(LOCAL_DATA_FILEPATH + filename));
+            while (scanner.hasNext()) {
+                String[] line = scanner.nextLine().split("\\s+");
+                CaseFrame frame = new CaseFrame(line.clone());
+                caseFrames.add(frame);
+            }
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
 }
