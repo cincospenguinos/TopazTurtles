@@ -282,9 +282,11 @@ public class Document {
                                     }
                                     break;
                                 }
+                                // there is something about this that doesn't work, and will require
+                                // more hours to debug
                                 else {
-                                    for (int j = i + 1; j < arr.length; j++) {
-                                        if (j > arr.length) {
+                                    for (int j = arr.length-1; j > i+1; j--) {
+                                        if (j < 0) {
                                             break;
                                         }
                                         if (arr[j].contains((frame_contents[1]))) {
@@ -395,7 +397,7 @@ public class Document {
         String[] arr = fullText.split("\\s+");
         for (String s : arr) {
             for (CaseFrame frame : caseFrames) {
-//                String blah = frame.getEntity();
+                String blah = frame.getEntity();
                 if (s.equalsIgnoreCase(frame.getEntity())) {
                     weapon = s;
                 }
